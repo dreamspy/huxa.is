@@ -15,7 +15,7 @@
 - [x] Add CORS middleware for local dev
 - [x] Test full flow: log → category → entry → submit → verify in JSONL
 
-## Phase 3 — Server Setup
+## Phase 3 — Server Setup ✅
 
 - [x] Provision EC2 instance (Ubuntu 24.04, eu-west-1)
 - [x] Create mnemo user and directory structure (`/opt`, `/var/lib`, `/var/log`, `/etc`)
@@ -24,7 +24,7 @@
 - [x] Copy config and set auth token
 - [x] Install and start systemd service
 - [x] Install and configure Nginx
-- [ ] Point Cloudflare DNS to the instance (deferred — using EC2 hostname for now)
+- [x] Point Cloudflare DNS to the instance
 - [x] Test `POST /events` against live server
 
 ## Phase 4 — Deploy Frontend ✅
@@ -64,12 +64,18 @@
 - [x] Edit from review goes to step-by-step wizard pre-filled with parsed answers
 - [x] Removed Diary from event type categories
 
-## Phase 5 — Offline Queue
+## Phase 4.10 — Logging UX Improvements ✅
 
-- [ ] Queue events in IndexedDB/localStorage when offline
-- [ ] Sync queued events when connection is restored
-- [ ] Show pending/synced status indicators
-- [ ] Handle conflicts gracefully
+- [x] Allow user to change date when logging (default to now, but allow override)
+- [x] Remove the Metrics option from the logging form
+- [x] Add a "Submit & New" flow for rapid-fire logging (submit current log and immediately start a new one, possibly with inline type selection)
+
+## Phase 5 — Offline Queue ✅
+
+- [x] Queue events in IndexedDB/localStorage when offline
+- [x] Sync queued events when connection is restored
+- [x] Show pending/synced status indicators
+- [x] Handle conflicts gracefully
 
 ## Phase 6 — Syncthing
 
@@ -85,3 +91,12 @@
 - [ ] Add basic rate limiting in Nginx
 - [ ] Set up log rotation
 - [ ] Automated backups of events.jsonl
+- [ ] Set up Cloudflare app lockdown (replace IP lockdown)
+
+## Phase 8 — Multi-User
+
+- [ ] Add Gmail/Google OAuth authentication
+- [ ] Associate events with authenticated user identity
+- [ ] Per-user event storage (separate JSONL files or user-prefixed entries)
+- [ ] Update frontend to handle login/logout flow
+- [ ] Migrate from single bearer token to OAuth session management

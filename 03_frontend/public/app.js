@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const APP_VERSION = "0.1.8";
+  const APP_VERSION = "0.1.9";
 
   const isLocal = window.location.hostname === "localhost";
   const API_BASE = isLocal ? "http://localhost:8000" : "";
@@ -23,8 +23,8 @@
   const stateDiaryBulkParsing = document.getElementById("state-diary-bulk-parsing");
   const stateQueue = document.getElementById("state-queue");
   const composeType = document.getElementById("compose-type");
+  const inputDatetime = document.getElementById("input-datetime");
   const inputText = document.getElementById("input-text");
-  const inputMetrics = document.getElementById("input-metrics");
   const toast = document.getElementById("toast");
   const tokenDialog = document.getElementById("token-dialog");
   const tokenInput = document.getElementById("token-input");
@@ -53,7 +53,6 @@
     selectedType = null;
     diaryBulkMode = false;
     inputText.value = "";
-    inputMetrics.value = "";
     showState(stateIdle);
   }
 
@@ -305,22 +304,11 @@
 
   // --- Event submission ---
 
-  async function submitEvent() {
+  async function submitEvent(nextType) {
     var text = inputText.value.trim();
     if (!text) {
       showToast("Text is required", "error");
       return;
-    }
-
-    var metrics = {};
-    var metricsRaw = inputMetrics.value.trim();
-    if (metricsRaw) {
-      try {
-        metrics = JSON.parse(metricsRaw);
-      } catch (e) {
-        showToast("Invalid metrics JSON", "error");
-        return;
-      }
     }
 
     var token = getToken();
@@ -331,14 +319,36 @@
 
     showState(stateSubmitting);
 
+    var clientTs;
+    if (inputDatetime.value) {
+      clientTs = new Date(inputDatetime.value).toISOString().replace(/\.\d{3}Z$/, "Z");
+    } else {
+      clientTs = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    }
+
     var event = {
       id: generateUUID(),
-      client_timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+      client_timestamp: clientTs,
       type: selectedType,
       text: text,
-      metrics: metrics,
+      metrics: {},
       meta: { version: 1 },
     };
+
+    function onSuccess() {
+      if (nextType) {
+        showToast("Logged — next: " + nextType, "success");
+        selectedType = nextType;
+        composeType.textContent = nextType;
+        inputText.value = "";
+        setComposeDateTime();
+        showState(stateCompose);
+        inputText.focus();
+      } else {
+        showToast("Logged", "success");
+        resetToIdle();
+      }
+    }
 
     try {
       var res = await fetch(API_BASE + "/events", {
@@ -355,13 +365,11 @@
         throw new Error(body.detail || "HTTP " + res.status);
       }
 
-      showToast("Logged", "success");
-      resetToIdle();
+      onSuccess();
     } catch (err) {
       if (err instanceof TypeError) {
         addToQueue("event", event);
-        showToast("Saved offline", "success");
-        resetToIdle();
+        onSuccess();
         return;
       }
       showToast(err.message || "Network error", "error");
@@ -381,12 +389,30 @@
     showState(stateCategory);
   });
 
-  document.querySelectorAll(".btn-category").forEach(function (btn) {
+  function setComposeDateTime() {
+    var now = new Date();
+    // datetime-local expects YYYY-MM-DDTHH:MM
+    var y = now.getFullYear();
+    var mo = String(now.getMonth() + 1).padStart(2, "0");
+    var d = String(now.getDate()).padStart(2, "0");
+    var hh = String(now.getHours()).padStart(2, "0");
+    var mm = String(now.getMinutes()).padStart(2, "0");
+    inputDatetime.value = y + "-" + mo + "-" + d + "T" + hh + ":" + mm;
+  }
+
+  document.querySelectorAll("#state-category .btn-category").forEach(function (btn) {
     btn.addEventListener("click", function () {
       selectedType = btn.dataset.type;
       composeType.textContent = selectedType;
+      setComposeDateTime();
       showState(stateCompose);
       inputText.focus();
+    });
+  });
+
+  document.querySelectorAll(".btn-submit-new").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      submitEvent(btn.dataset.type);
     });
   });
 
@@ -396,7 +422,9 @@
     showState(stateCategory);
   });
 
-  document.getElementById("btn-submit").addEventListener("click", submitEvent);
+  document.getElementById("btn-submit").addEventListener("click", function () {
+    submitEvent();
+  });
 
   document.getElementById("btn-save-token").addEventListener("click", function (e) {
     e.preventDefault();

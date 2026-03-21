@@ -161,11 +161,21 @@
     <!-- State: compose -->
     <section id="state-compose" class="state hidden">
       <p class="label">New <span id="compose-type"></span></p>
+      <input id="input-datetime" class="input" type="datetime-local">
       <textarea id="input-text" class="input" placeholder="What happened?" rows="3"></textarea>
-      <input id="input-metrics" class="input" type="text" placeholder='Metrics (optional JSON, e.g. {"mood":7})'>
       <div class="compose-actions">
         <button class="btn btn-back" id="btn-back-compose">Back</button>
         <button class="btn btn-submit" id="btn-submit">Submit</button>
+      </div>
+      <div class="submit-new-section">
+        <p class="label label-small">Submit & log another</p>
+        <div class="category-grid">
+          <button class="btn btn-category btn-submit-new" data-type="Event">Event</button>
+          <button class="btn btn-category btn-submit-new" data-type="Intervention">Intervention</button>
+          <button class="btn btn-category btn-submit-new" data-type="Symptom">Symptom</button>
+          <button class="btn btn-category btn-submit-new" data-type="Decision">Decision</button>
+          <button class="btn btn-category btn-submit-new" data-type="Thought">Thought</button>
+        </div>
       </div>
     </section>
 

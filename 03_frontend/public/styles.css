@@ -159,11 +159,30 @@ body {
   border-color: var(--accent);
 }
 
+input[type="datetime-local"].input {
+  font-size: 1.1rem;
+  padding: 0.9rem 1rem;
+  min-height: 3rem;
+}
+
 .compose-actions {
   width: 100%;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.submit-new-section {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bg-input);
+}
+
+.label-small {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
 }
 
 .feedback {
