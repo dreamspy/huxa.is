@@ -163,8 +163,19 @@
 - [x] Toast messages appear and disappear after 3 seconds
 - [x] App theme matches web version (dark background, accent colors)
 
-# Phase 8.1 New name
-- [ ] Find new name
+## Phase 8.1 — Expo Web Support (replace HTML frontend)
+
+- [ ] Install `react-native-web` and `react-dom`
+- [ ] Get `npx expo start --web` running
+- [ ] Handle web-incompatible components (e.g. `DateTimePicker` needs conditional rendering or web alternative)
+- [ ] Retire `03_frontend/` HTML version — one codebase for iOS, Android, and web
+
+## Phase 8.2 — Rebrand to Huxa
+
+- [ ] Buy huxa.is domain
+- [ ] Rename app throughout codebase (frontend, app, backend, configs)
+- [ ] Update Cloudflare DNS and nginx for new domain
+- [ ] New app icon and branding
 
 ## Phase 9 — GPT Query in App
 
