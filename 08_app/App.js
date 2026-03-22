@@ -80,6 +80,7 @@ export default function App() {
   var _r = useState(0), diaryStep = _r[0], setDiaryStep = _r[1];
   var _s = useState(""), diarySummary = _s[0], setDiarySummary = _s[1];
   var _t = useState(false), diaryHasExisting = _t[0], setDiaryHasExisting = _t[1];
+  var _v = useState(""), bulkText = _v[0], setBulkText = _v[1];
 
   var _u = useState([]), queue = _u[0], setQueue = _u[1];
 
@@ -265,7 +266,7 @@ export default function App() {
     return (
       <SafeAreaView style={st.container}>
         <StatusBar barStyle="light-content" />
-        <Text style={st.title}>Mnemo</Text>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
         <View style={st.idleButtons}>
           <TouchableOpacity style={st.btn} onPress={function () { if (!token) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (!token) setScreen("token"); else { setDiaryDate(todayStr()); setScreen("diary-date"); } }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
@@ -283,7 +284,7 @@ export default function App() {
   if (screen === "token") {
     return (
       <SafeAreaView style={st.container}>
-        <Text style={st.title}>Mnemo</Text>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
         <Text style={st.label}>Set API Token</Text>
         <TextInput style={st.input} placeholder="Bearer token" placeholderTextColor={C.muted} value={tokenInput} onChangeText={setTokenInput} autoCapitalize="none" autoCorrect={false} />
         <View style={st.row}>
@@ -298,7 +299,7 @@ export default function App() {
   if (screen === "category") {
     return (
       <SafeAreaView style={st.container}>
-        <Text style={st.title}>Mnemo</Text>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
         <Text style={st.label}>Category</Text>
         <View style={st.categoryGrid}>
           {CATEGORIES.map(function (cat) {
@@ -306,7 +307,7 @@ export default function App() {
           })}
         </View>
         <View style={{ height: 12 }} />
-        <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
+        <View style={st.halfRow}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
       </SafeAreaView>
     );
   }
@@ -317,12 +318,12 @@ export default function App() {
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
-            <Text style={st.title}>Mnemo</Text>
+            <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
             <Text style={st.label}>{editingEventId ? "Edit " : "New "}{selectedType}</Text>
-            <TouchableOpacity style={st.input} onPress={function () { setShowDatePicker(true); }}>
-              <Text style={st.inputText}>{composeDate.toLocaleDateString()} {composeDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Text>
-            </TouchableOpacity>
-            {showDatePicker && <DateTimePicker value={composeDate} mode="datetime" display="default" onChange={function (e, date) { setShowDatePicker(Platform.OS === "ios"); if (date) setComposeDate(date); }} />}
+            <View style={st.datePickerRow}>
+              <DateTimePicker value={composeDate} mode="date" display="default" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />
+              <DateTimePicker value={composeDate} mode="time" display="default" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />
+            </View>
             <TextInput style={[st.input, st.textArea]} placeholder="What happened?" placeholderTextColor={C.muted} value={composeText} onChangeText={setComposeText} multiline numberOfLines={3} />
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (editingEventId) { setEditingEventId(null); setScreen("history"); doFetchHistory(historyTab, historyDate); } else setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
@@ -352,7 +353,7 @@ export default function App() {
   if (screen === "history") {
     return (
       <SafeAreaView style={st.container}>
-        <Text style={st.title}>Mnemo</Text>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
         <Text style={st.label}>History</Text>
         <TouchableOpacity style={st.input} onPress={function () { setShowHistoryDatePicker(true); }}><Text style={st.inputText}>{historyDate}</Text></TouchableOpacity>
         {showHistoryDatePicker && <DateTimePicker value={new Date(historyDate + "T12:00:00")} mode="date" display="default" onChange={function (e, date) { setShowHistoryDatePicker(Platform.OS === "ios"); if (date) { var d = date.toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); } }} />}
@@ -386,7 +387,7 @@ export default function App() {
             </View>
           )}
         </ScrollView>
-        <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
+        <View style={st.halfRow}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
         {renderToast()}
       </SafeAreaView>
     );
@@ -396,14 +397,14 @@ export default function App() {
   if (screen === "diary-date") {
     return (
       <SafeAreaView style={st.container}>
-        <Text style={st.title}>Mnemo</Text>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
         <Text style={st.label}>Diary - Pick a Date</Text>
         <View style={st.row}>
           <TouchableOpacity style={st.btnBack} onPress={function () { startDiary(yesterdayStr()); }}><Text style={st.btnBackText}>Yesterday</Text></TouchableOpacity>
           <TouchableOpacity style={st.btnSubmit} onPress={function () { startDiary(todayStr()); }}><Text style={st.btnSubmitText}>Today</Text></TouchableOpacity>
         </View>
         <View style={{ height: 12 }} />
-        <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
+        <View style={st.halfRow}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
       </SafeAreaView>
     );
   }
@@ -418,18 +419,119 @@ export default function App() {
     return (
       <SafeAreaView style={st.container}>
         <ScrollView contentContainerStyle={st.scrollContent}>
-          <Text style={st.title}>Mnemo</Text>
+          <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
           <Text style={st.label}>{diaryHasExisting ? "Existing Entry" : "Today's Events Summary"}</Text>
           <View style={st.summaryBox}><Text style={st.summaryText}>{diarySummary}</Text></View>
           {diaryHasExisting ? (
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Looks Good</Text></TouchableOpacity>
-              <TouchableOpacity style={st.btnSubmit} onPress={function () { setDiaryStep(0); setScreen("diary-step"); }}><Text style={st.btnSubmitText}>Edit</Text></TouchableOpacity>
+              <TouchableOpacity style={st.btnSubmit} onPress={function () { setScreen("diary-bulk-scales"); }}><Text style={st.btnSubmitText}>Edit</Text></TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity style={[st.btnSubmit, { width: "100%" }]} onPress={function () { setDiaryStep(0); setScreen("diary-step"); }}><Text style={st.btnSubmitText}>Continue</Text></TouchableOpacity>
+            <View style={st.row}>
+              <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("diary-bulk-scales"); }}><Text style={st.btnBackText}>Quick Entry</Text></TouchableOpacity>
+              <TouchableOpacity style={st.btnSubmit} onPress={function () { setDiaryStep(0); setScreen("diary-step"); }}><Text style={st.btnSubmitText}>Continue</Text></TouchableOpacity>
+            </View>
           )}
         </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // --- DIARY BULK SCALES ---
+  if (screen === "diary-bulk-scales") {
+    return (
+      <SafeAreaView style={st.container}>
+        <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+          <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
+          <Text style={st.label}>Rate Your Day</Text>
+          {SCALE_QUESTIONS.map(function (q) {
+            var current = diaryAnswers[q.key];
+            return (
+              <View key={q.key} style={{ width: "100%", marginBottom: 16 }}>
+                <Text style={st.labelSmall}>{q.label}</Text>
+                <View style={st.scaleGrid}>
+                  {Array.from({ length: q.max - q.min + 1 }, function (_, i) { return i + q.min; }).map(function (val) {
+                    return (
+                      <TouchableOpacity key={val} style={[st.scaleBtn, current === val && st.scaleBtnSelected]} onPress={function () { setDiaryAnswer(q.key, val); }}>
+                        <Text style={[st.scaleBtnText, current === val && st.scaleBtnTextSelected]}>{val}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })}
+          <View style={st.row}>
+            <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("diary-summary"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
+            <TouchableOpacity style={st.btnSubmit} onPress={function () {
+              // Pre-fill bulk text from existing text answers
+              var existing = TEXT_QUESTIONS.filter(function (q) { return diaryAnswers[q.key]; })
+                .map(function (q) { return q.label + ": " + diaryAnswers[q.key]; }).join("\n");
+              setBulkText(existing);
+              setScreen("diary-bulk-text");
+            }}><Text style={st.btnSubmitText}>Next</Text></TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // --- DIARY BULK TEXT ---
+  if (screen === "diary-bulk-text") {
+    return (
+      <SafeAreaView style={st.container}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
+          <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+            <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
+            <Text style={st.label}>Describe Your Day</Text>
+            <Text style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>Answer any or all of these in one go:</Text>
+            {TEXT_QUESTIONS.map(function (q) {
+              return <Text key={q.key} style={{ color: C.text, fontSize: 13, marginBottom: 2 }}>{"\u2022 " + q.label + " \u2014 " + q.question}</Text>;
+            })}
+            <View style={{ height: 12 }} />
+            <TextInput
+              style={[st.input, { minHeight: 120 }]}
+              placeholder="Type or dictate your answers..."
+              placeholderTextColor={C.muted}
+              value={bulkText}
+              onChangeText={setBulkText}
+              multiline
+              numberOfLines={6}
+            />
+            <View style={st.row}>
+              <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("diary-bulk-scales"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
+              <TouchableOpacity style={st.btnSubmit} onPress={function () {
+                if (!bulkText.trim()) {
+                  // No text, go straight to review
+                  setScreen("diary-review");
+                  return;
+                }
+                // Parse text via API
+                setScreen("submitting");
+                var questions = TEXT_QUESTIONS.map(function (q) { return { key: q.key, label: q.label }; });
+                fetch(API_BASE + "/diary/parse-text", {
+                  method: "POST",
+                  headers: authHeaders(),
+                  body: JSON.stringify({ raw_text: bulkText, questions: questions }),
+                }).then(function (res) {
+                  if (!res.ok) throw new Error("HTTP " + res.status);
+                  return res.json();
+                }).then(function (data) {
+                  var updated = Object.assign({}, diaryAnswers);
+                  Object.keys(data.answers).forEach(function (k) {
+                    if (data.answers[k]) updated[k] = data.answers[k];
+                  });
+                  setDiaryAnswers(updated);
+                  setScreen("diary-review");
+                }).catch(function (err) {
+                  showToastMsg(err.message || "Network error", "error");
+                  setScreen("diary-bulk-text");
+                });
+              }}><Text style={st.btnSubmitText}>Review</Text></TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -442,7 +544,7 @@ export default function App() {
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
-            <Text style={st.title}>Mnemo</Text>
+            <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
             <Text style={st.progressText}>{diaryStep + 1} / {DIARY_QUESTIONS.length}</Text>
             <Text style={st.label}>{q.label}</Text>
             <Text style={st.question}>{q.question}</Text>
@@ -464,7 +566,7 @@ export default function App() {
     return (
       <SafeAreaView style={st.container}>
         <ScrollView contentContainerStyle={st.scrollContent}>
-          <Text style={st.title}>Mnemo</Text>
+          <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>Mnemo</Text></TouchableOpacity>
           <Text style={st.label}>Review Your Diary</Text>
           {SCALE_QUESTIONS.concat(TEXT_QUESTIONS).map(function (q) {
             var val = diaryAnswers[q.key];
@@ -494,9 +596,11 @@ var st = StyleSheet.create({
   btnText: { color: C.text, fontSize: 16, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
   btnSubmit: { backgroundColor: C.accent, borderRadius: 25, paddingVertical: 14, paddingHorizontal: 24, alignItems: "center", flex: 1 },
   btnSubmitText: { color: C.text, fontSize: 14, fontWeight: "600", textTransform: "uppercase" },
-  btnBack: { borderRadius: 25, borderWidth: 1, borderColor: C.muted, paddingVertical: 14, paddingHorizontal: 24, alignItems: "center", width: "100%" },
+  btnBack: { borderRadius: 25, borderWidth: 1, borderColor: C.muted, paddingVertical: 14, paddingHorizontal: 24, alignItems: "center", flex: 1 },
   btnBackText: { color: C.muted, fontSize: 14, fontWeight: "600", textTransform: "uppercase" },
   row: { flexDirection: "row", width: "100%", gap: 12, marginTop: 12 },
+  halfRow: { flexDirection: "row", width: "50%", marginTop: 12 },
+  datePickerRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 },
   input: { width: "100%", backgroundColor: C.input, borderRadius: 25, padding: 14, color: C.text, fontSize: 16, marginBottom: 12 },
   inputText: { color: C.text, fontSize: 16 },
   textArea: { minHeight: 80, textAlignVertical: "top" },

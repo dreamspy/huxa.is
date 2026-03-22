@@ -115,23 +115,25 @@
 - [ ] Token persists after closing and reopening app
 
 **Logging**
-- [ ] Tap Log → see category picker with 5 categories
-- [ ] Select category → compose screen shows correct type label
-- [ ] Date/time picker opens and allows changing date
-- [ ] Enter text and submit → toast says "Logged"
-- [ ] Submit with empty text → error toast
-- [ ] "Submit & log another" → submits and opens new compose with selected type
-- [ ] Back button returns to category screen
+- [x] Tap Log → see category picker with 5 categories
+- [x] Select category → compose screen shows correct type label
+- [x] Date/time picker opens and allows changing date
+- [x] Enter text and submit → toast says "Logged"
+- [x] Submit with empty text → error toast
+- [x] "Submit & log another" → submits and opens new compose with selected type
+- [x] Back button returns to category screen
 
 **History**
-- [ ] History loads today's events
+- [x] History loads today's events
 - [ ] Date picker changes date and reloads
-- [ ] Events tab shows event cards with type badge, time, text
-- [ ] Diary tab shows diary entries or "No diary entry" message
+	- [ ] date picker on history needs fixing
+- [x] Events tab shows event cards with type badge, time, text
+- [x] Diary tab shows diary entries or "No diary entry" message
 - [ ] Edit button on event → opens compose pre-filled with event data
-- [ ] Edit and submit → toast says "Updated"
-- [ ] Back from edit returns to history
-- [ ] Edit Diary button → opens step-by-step wizard with existing answers
+	- [ ] works but submit should go back to the event view with the same date
+- [x] Edit and submit → toast says "Updated"
+- [x] Back from edit returns to history
+- [x] Edit Diary button → opens step-by-step wizard with existing answers
 
 **Diary**
 - [ ] Yesterday / Today buttons start diary flow
@@ -163,3 +165,16 @@
 - [ ] Add Google login to native app and web frontend
 - [ ] Replace bearer token with OAuth session
 - [ ] Remove token UI from web frontend (settings gear, token dialog)
+
+
+- add button to delete diary and log entries
+- add proper application to iPhone
+
+## Phase 10 — Smart Query (Embeddings / RAG)
+
+The current `/query` endpoint sends the entire event log to GPT. At ~10 events/day, the log will exceed GPT-4o-mini's 128K token context window within 6-12 months. An embeddings-based approach finds only the relevant events for each query, making it scale to years of data without hitting token limits.
+
+- [ ] Compute embeddings for events on ingest (OpenAI or local model)
+- [ ] Store embeddings (vector file or lightweight vector DB)
+- [ ] Query by similarity: find relevant events, send only those to GPT
+- [ ] Fallback: add date range filter to `/query` endpoint as interim solution

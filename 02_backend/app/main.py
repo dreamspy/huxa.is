@@ -133,11 +133,23 @@ def query_events(q: QueryIn) -> QueryOut:
 
     events_text = ""
     if EVENTS_FILE.exists():
-        events_text = EVENTS_FILE.read_text().strip()
+        by_id = {}
+        for line in EVENTS_FILE.read_text().strip().splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            by_id[entry["id"]] = line
+        events_text = "\n".join(by_id.values())
 
     diary_text = ""
     if DIARY_FILE.exists():
-        diary_text = DIARY_FILE.read_text().strip()
+        by_date = {}
+        for line in DIARY_FILE.read_text().strip().splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            by_date[entry["date"]] = line
+        diary_text = "\n".join(by_date.values())
 
     if not events_text and not diary_text:
         return QueryOut(answer="No data has been logged yet.")
@@ -264,7 +276,8 @@ def get_diary_summary(date: str) -> DiarySummaryOut:
             detail="OpenAI API key not configured",
         )
 
-    events = []
+    # Deduplicate by ID (latest version wins)
+    by_id = {}
     if EVENTS_FILE.exists():
         for line in EVENTS_FILE.read_text().strip().splitlines():
             entry = json.loads(line)
@@ -272,7 +285,8 @@ def get_diary_summary(date: str) -> DiarySummaryOut:
                 continue
             ts = entry.get("client_timestamp", "")
             if ts.startswith(date):
-                events.append(entry)
+                by_id[entry["id"]] = entry
+    events = list(by_id.values())
 
     if not events:
         return DiarySummaryOut(summary="No events logged for this date.")
