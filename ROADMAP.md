@@ -99,10 +99,19 @@
 - [x] ~~Automated backups of events.jsonl~~ (covered by Syncthing sync to Mac)
 - [ ] Set up Cloudflare app lockdown (replace IP lockdown)
 
-## Phase 8 — Multi-User (via Cloudflare Access)
+## Phase 8 — Native App (learning project)
 
-- [ ] Set up Cloudflare Access with Google login (replaces IP lockdown and bearer token)
-- [ ] Backend: read `Cf-Access-Authenticated-User-Email` header to identify user
+- [ ] Pick a framework and set up the project
+- [ ] Connect to existing backend API (bearer token auth)
+- [ ] Replicate core logging flow (category → compose → submit)
+- [ ] Replicate history view with editing
+- [ ] Replicate diary flow
+- [ ] Explore native-only features (push notifications, haptics, etc.)
+
+## Phase 9 — Multi-User (Google OAuth)
+
+- [ ] Add Google OAuth login (backend endpoints for auth flow, JWT sessions)
 - [ ] Per-user JSONL storage (`/var/lib/mnemo/users/{email}/events.jsonl` and `diary.jsonl`)
-- [ ] Remove bearer token auth from backend
-- [ ] Remove token UI from frontend (settings gear, token dialog)
+- [ ] Add Google login to native app and web frontend
+- [ ] Replace bearer token with OAuth session
+- [ ] Remove token UI from web frontend (settings gear, token dialog)
