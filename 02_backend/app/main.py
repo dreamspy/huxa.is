@@ -69,17 +69,18 @@ def list_events(
         filter_from = filter_to = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     # Use dict to deduplicate by ID (latest version wins)
+    # Scan all lines so delete markers (which have the deletion timestamp,
+    # not the original event timestamp) are always picked up.
     by_id = {}
     for line in EVENTS_FILE.read_text().strip().splitlines():
         if not line.strip():
             continue
         entry = json.loads(line)
-        ts = entry.get("client_timestamp", "")
-        day = ts[:10]
-        if filter_from <= day <= filter_to:
-            by_id[entry["id"]] = entry
+        by_id[entry["id"]] = entry
 
-    results = [EventStored(**e) for e in by_id.values() if not e.get("meta", {}).get("deleted")]
+    results = [EventStored(**e) for e in by_id.values()
+               if not e.get("meta", {}).get("deleted")
+               and filter_from <= e.get("client_timestamp", "")[:10] <= filter_to]
     results.sort(key=lambda e: e.client_timestamp, reverse=True)
     return results
 
