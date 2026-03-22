@@ -93,7 +93,9 @@
 
 - [ ] Review auth token handling
 - [ ] Set up Cloudflare TLS (Full strict)
-- [ ] Add basic rate limiting in Nginx
+- [x] Add basic rate limiting in Nginx
+- [x] Add security headers in Nginx (HSTS, X-Frame-Options, nosniff, XSS, referrer)
+- [x] Restrict EC2 security group to Cloudflare IPs only (ports 80/443)
 - [ ] Set up log rotation
 - [ ] Automated backups of events.jsonl
 - [ ] Set up Cloudflare app lockdown (replace IP lockdown)
