@@ -26,17 +26,17 @@
 - [x] Install `react-native-web` and `react-dom`
 - [x] Get `npx expo start --web` running
 - [x] Handle web-incompatible components (e.g. `DateTimePicker` needs conditional rendering or web alternative)
-- [ ] Retire `03_frontend/` — delete directory, remove all references from docs
-- [ ] Update `05_scripts/dev_server.sh` for Expo (iOS/Android + web dev modes)
-- [ ] Add `build:web` npm script to `08_app/package.json`
-- [ ] Update `fabfile.py` deploy to also sync nginx config and reload
-- [ ] Update `01_docs/deployment.md` with Expo web build + deploy flow
-- [ ] Update `01_docs/decisions.md` — frontend decision from PWA to Expo
-- [ ] Update `01_docs/architecture.md` — remove PWA references, add Expo web
-- [ ] Update `README.md` — replace frontend section with Expo, update project structure
-- [ ] Update `02_backend/README.md` — remove old frontend references
-- [ ] Update `05_scripts/README.md` — reflect new dev workflow
-- [ ] Update `CLAUDE.md` — remove `03_frontend/` from file paths, update version bump info
+- [x] Retire `03_frontend/` — delete directory, remove all references from docs
+- [x] Update `05_scripts/dev_server.sh` for Expo (iOS/Android + web dev modes)
+- [x] Add `build:web` npm script to `08_app/package.json`
+- [x] Update `fabfile.py` deploy to also sync nginx config and reload
+- [x] Update `01_docs/deployment.md` with Expo web build + deploy flow
+- [x] Update `01_docs/decisions.md` — frontend decision from PWA to Expo
+- [x] Update `01_docs/architecture.md` — remove PWA references, add Expo web
+- [x] Update `README.md` — replace frontend section with Expo, update project structure
+- [x] Update `02_backend/README.md` — remove old frontend references
+- [x] Update `05_scripts/README.md` — reflect new dev workflow
+- [x] Update `CLAUDE.md` — remove `03_frontend/` from file paths, update version bump info
 
 ## Phase 8.2 — Rebrand to HuXa
 
