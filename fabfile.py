@@ -25,6 +25,9 @@ def deploy(c):
     subprocess.run(["git", "push", "origin", "main"], check=True)
     with _conn() as srv:
         srv.run("cd /opt/huxa && sudo git pull origin main")
+        srv.run("sudo cp /opt/huxa/04_infrastructure/nginx/huxa.conf /etc/nginx/sites-available/huxa")
+        srv.run("sudo nginx -t")
+        srv.run("sudo systemctl reload nginx")
         srv.run("sudo systemctl restart huxa")
         srv.run("sudo systemctl status huxa --no-pager")
 
