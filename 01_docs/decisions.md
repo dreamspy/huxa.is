@@ -48,11 +48,10 @@ All decisions listed here are **locked** for v1 unless explicitly revisited.
 
 | Decision | Status |
 |---|---|
-| Web-first PWA | Locked |
+| Expo (React Native) — single codebase for iOS, Android, and web | Locked |
 | Single "Log" button entry point | Locked |
 | Category selection before entry | Locked |
 | One-sentence text entry | Locked |
-| Optional numeric metrics | Locked |
 | Client-side keyboard input (Whisper later) | Locked |
 
 ## Infrastructure
@@ -81,6 +80,4 @@ All decisions listed here are **locked** for v1 unless explicitly revisited.
 |---|---|
 | PostgreSQL migration when scale demands | Planned |
 | Cloudflare Zero Trust access control | Planned |
-| Flutter mobile client | Planned |
 | AI augmentation layer | Planned |
-| Offline-first client with batch sync | Planned |
