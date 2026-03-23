@@ -110,6 +110,10 @@ Phase 1 uses simple bearer token authentication. This is intentionally minimal â
 
 HuXa is designed so that migrating from JSONL to PostgreSQL is straightforward when scale demands it. The event schema maps directly to a single table. The append-only discipline means no complex migration of mutable state. This migration is not planned for v1.
 
+## Development
+
+See [01_docs/development.md](01_docs/development.md) for the full dev workflow â€” running locally, testing in browser/simulator/iPhone, making changes, and deploying.
+
 ## Repository Structure
 
 ```
