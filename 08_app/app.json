@@ -23,7 +23,13 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "HuXa",
+      "shortName": "HuXa",
+      "display": "standalone",
+      "statusBarStyle": "black-translucent",
+      "backgroundColor": "#1a1a2e",
+      "themeColor": "#1a1a2e"
     },
     "plugins": [
       "@react-native-community/datetimepicker"

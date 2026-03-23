@@ -18,7 +18,7 @@ import NetInfo from "@react-native-community/netinfo";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://mnemo.axex.is";
-const APP_VERSION = "0.2.5";
+const APP_VERSION = "0.2.6";
 
 const C = {
   bg: "#1a1a2e",
