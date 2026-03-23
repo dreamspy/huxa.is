@@ -18,7 +18,7 @@ import NetInfo from "@react-native-community/netinfo";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://mnemo.axex.is";
-const APP_VERSION = "0.2.3";
+const APP_VERSION = "0.2.4";
 
 const C = {
   bg: "#1a1a2e",
@@ -808,6 +808,7 @@ function AppContent() {
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { setScreen(feedbackPrevScreen || "idle"); }}><Text style={st.btnBackText}>Cancel</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () {
+                if (!token) { showToastMsg("Set your token in Settings first", "error"); return; }
                 if (!feedbackText.trim()) { showToastMsg("Please describe your feedback", "error"); return; }
                 setScreen("submitting");
                 fetch(API_BASE + "/reports", {
@@ -815,6 +816,7 @@ function AppContent() {
                   headers: authHeaders(),
                   body: JSON.stringify({ type: feedbackType, text: feedbackText.trim() }),
                 }).then(function (res) {
+                  if (res.status === 401 || res.status === 403) throw new Error("Invalid token — check Settings");
                   if (!res.ok) throw new Error("HTTP " + res.status);
                   showToastMsg("Feedback sent", "success");
                   setFeedbackText("");
