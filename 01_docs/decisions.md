@@ -46,13 +46,13 @@ All decisions listed here are **locked** for v1 unless explicitly revisited.
 
 ## Frontend
 
-| Decision | Status |
-|---|---|
+| Decision                                                        | Status |
+| --------------------------------------------------------------- | ------ |
 | Expo (React Native) — single codebase for iOS, Android, and web | Locked |
-| Single "Log" button entry point | Locked |
-| Category selection before entry | Locked |
-| One-sentence text entry | Locked |
-| Client-side keyboard input (Whisper later) | Locked |
+| Single "Log" button entry point                                 | Locked |
+| Category selection before entry                                 | Locked |
+| One-sentence text entry                                         | Locked |
+| Client-side keyboard input (Whisper later)                      | Locked |
 
 ## Infrastructure
 

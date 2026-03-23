@@ -2,7 +2,11 @@
 
 ## Backlog
 
+- [ ] Let's go over the documentation and try impementing and testing one feature
+	- [ ] add feature / bug report
+- [ ] Fix PWD not being fullscreen
 - [ ] Make Enter key function as submit/next throughout the app
+- [ ] Voice input via Whisper (on-device or server-side speech-to-text for logging and diary)
 
 ## Phase 8.2 — Rebrand to HuXa
 
@@ -15,6 +19,7 @@
 ## Phase 10 — Standalone App on iPhone
 
 - [ ] Get Apple Developer account ($99/year)
+	- [ ] Need a passport is drivers license
 - [ ] Install EAS CLI (`npm install -g eas-cli`)
 - [ ] Configure `eas.json` and app signing
 - [ ] App icon and splash screen

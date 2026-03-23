@@ -65,3 +65,16 @@ class DiaryParseIn(BaseModel):
 
 class DiaryParseOut(BaseModel):
     answers: dict[str, str]
+
+
+class FeedbackIn(BaseModel):
+    type: str = Field(..., description="bug or feature")
+    text: str
+
+
+class FeedbackOut(BaseModel):
+    id: str
+    type: str
+    text: str
+    created_at: str
+    meta: dict = Field(default_factory=lambda: {"version": 1})

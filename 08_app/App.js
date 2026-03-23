@@ -18,7 +18,7 @@ import NetInfo from "@react-native-community/netinfo";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://mnemo.axex.is";
-const APP_VERSION = "0.2.1";
+const APP_VERSION = "0.2.2";
 
 const C = {
   bg: "#1a1a2e",
@@ -117,6 +117,12 @@ function AppContent() {
   var _x = useState(""), queryAnswer = _x[0], setQueryAnswer = _x[1];
   var _y = useState(false), queryLoading = _y[0], setQueryLoading = _y[1];
 
+  var _fb1 = useState("feature"), feedbackType = _fb1[0], setFeedbackType = _fb1[1];
+  var _fb2 = useState(""), feedbackText = _fb2[0], setFeedbackText = _fb2[1];
+  var _fb3 = useState(null), feedbackPrevScreen = _fb3[0], setFeedbackPrevScreen = _fb3[1];
+  var _fb4 = useState([]), feedbackList = _fb4[0], setFeedbackList = _fb4[1];
+  var _fb5 = useState(false), feedbackShowList = _fb5[0], setFeedbackShowList = _fb5[1];
+
   useEffect(function () {
     var envToken = process.env.EXPO_PUBLIC_AUTH_TOKEN;
     if (envToken) { setToken(envToken); }
@@ -166,7 +172,7 @@ function AppContent() {
       if (i >= items.length) { if (changed) saveQueueItems(items); return; }
       var item = items[i];
       if (item.status !== "pending" && item.status !== "failed") { process(i + 1); return; }
-      var endpoint = item.kind === "diary" ? "/diary" : "/events";
+      var endpoint = item.kind === "diary" ? "/diary" : item.kind === "feedback" ? "/feedback" : "/events";
       fetch(API_BASE + endpoint, { method: "POST", headers: authHeaders(), body: JSON.stringify(item.payload) })
         .then(function (res) {
           if (!res.ok) throw new Error("HTTP " + res.status);
@@ -357,7 +363,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <StatusBar barStyle="light-content" />
-        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <View style={st.idleButtons}>
           <TouchableOpacity style={st.btn} onPress={function () { if (!token) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (!token) setScreen("token"); else { setDiaryDate(todayStr()); setScreen("diary-date"); } }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
@@ -384,7 +390,7 @@ function AppContent() {
     };
     return (
       <SafeAreaView style={st.container}>
-        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <Text style={st.label}>Pending Events ({queue.length})</Text>
         <ScrollView style={st.historyScroll} contentContainerStyle={st.historyScrollContent}>
           {queue.map(function (item) {
@@ -427,7 +433,7 @@ function AppContent() {
   if (screen === "token") {
     return (
       <SafeAreaView style={st.container}>
-        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <Text style={st.label}>Set API Token</Text>
         <TextInput style={st.input} placeholder="Bearer token" placeholderTextColor={C.muted} value={tokenInput} onChangeText={setTokenInput} autoCapitalize="none" autoCorrect={false} />
         <View style={st.row}>
@@ -442,7 +448,7 @@ function AppContent() {
   if (screen === "category") {
     return (
       <SafeAreaView style={st.container}>
-        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <Text style={st.label}>Category</Text>
         <View style={st.categoryGrid}>
           {CATEGORIES.map(function (cat) {
@@ -461,7 +467,7 @@ function AppContent() {
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
-            <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+            <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>{editingEventId ? "Edit " : "New "}{selectedType}</Text>
             <View style={st.datePickerRow}>
               {Platform.OS === "web" ? <WebDateInput value={composeDate} mode="date" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="date" display="default" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
@@ -498,7 +504,7 @@ function AppContent() {
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
-            <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+            <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Ask HuXa</Text>
             <TextInput
               style={st.input}
@@ -527,7 +533,7 @@ function AppContent() {
   if (screen === "history") {
     return (
       <SafeAreaView style={st.container}>
-        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <Text style={st.label}>History</Text>
         <View style={st.datePickerRow}>
           {Platform.OS === "web" ? <WebDateInput value={new Date(historyDate + "T12:00:00")} mode="date" onChange={function (e, date) { if (date) { var d = date.toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); } }} /> : <DateTimePicker value={new Date(historyDate + "T12:00:00")} mode="date" display="default" themeVariant="dark" onChange={function (e, date) { if (date) { var d = date.toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); } }} />}
@@ -578,7 +584,7 @@ function AppContent() {
   if (screen === "diary-date") {
     return (
       <SafeAreaView style={st.container}>
-        <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+        <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <Text style={st.label}>Diary - Pick a Date</Text>
         <View style={st.row}>
           <TouchableOpacity style={st.btnBack} onPress={function () { startDiary(yesterdayStr()); }}><Text style={st.btnBackText}>Yesterday</Text></TouchableOpacity>
@@ -600,7 +606,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <ScrollView contentContainerStyle={st.scrollContent}>
-          <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+          <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>{diaryHasExisting ? "Existing Entry" : "Today's Events Summary"}</Text>
           <View style={st.summaryBox}><Text style={st.summaryText}>{diarySummary}</Text></View>
           {diaryHasExisting && SCALE_QUESTIONS.concat(TEXT_QUESTIONS).map(function (q) {
@@ -636,7 +642,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+          <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Rate Your Day</Text>
           {SCALE_QUESTIONS.map(function (q) {
             var current = diaryAnswers[q.key];
@@ -676,7 +682,7 @@ function AppContent() {
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
-            <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+            <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Describe Your Day</Text>
             <View style={{ width: "100%", alignItems: "flex-start" }}>
               <Text style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>Answer any or all of these in one go:</Text>
@@ -739,7 +745,7 @@ function AppContent() {
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
-            <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+            <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.progressText}>{diaryStep + 1} / {DIARY_STEPS.length}</Text>
             <Text style={st.label}>{q.label}</Text>
             <Text style={st.question}>{q.question}</Text>
@@ -761,7 +767,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <ScrollView contentContainerStyle={st.scrollContent}>
-          <TouchableOpacity onPress={function () { setScreen("idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+          <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Review Your Diary</Text>
           {SCALE_QUESTIONS.concat(TEXT_QUESTIONS).map(function (q) {
             var val = diaryAnswers[q.key];
@@ -772,6 +778,80 @@ function AppContent() {
             <TouchableOpacity style={st.btnSubmit} onPress={saveDiary}><Text style={st.btnSubmitText}>Save</Text></TouchableOpacity>
           </View>
         </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // --- FEEDBACK ---
+  if (screen === "feedback") {
+    return (
+      <SafeAreaView style={st.container}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
+          <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+            <TouchableOpacity onPress={function () { setScreen(feedbackPrevScreen || "idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+            <Text style={st.label}>Feedback</Text>
+            <View style={st.row}>
+              <TouchableOpacity style={[st.btnSubmit, feedbackType === "feature" ? {} : { backgroundColor: C.surface }]} onPress={function () { setFeedbackType("feature"); }}><Text style={st.btnSubmitText}>Feature</Text></TouchableOpacity>
+              <TouchableOpacity style={[st.btnSubmit, feedbackType === "bug" ? { backgroundColor: C.error } : { backgroundColor: C.surface }]} onPress={function () { setFeedbackType("bug"); }}><Text style={st.btnSubmitText}>Bug</Text></TouchableOpacity>
+            </View>
+            <View style={{ height: 12 }} />
+            <TextInput
+              style={[st.input, st.textArea, { minHeight: 100 }]}
+              placeholder={feedbackType === "bug" ? "Describe the bug..." : "Describe the feature..."}
+              placeholderTextColor={C.muted}
+              value={feedbackText}
+              onChangeText={setFeedbackText}
+              multiline
+              numberOfLines={4}
+              autoFocus
+            />
+            <View style={st.row}>
+              <TouchableOpacity style={st.btnBack} onPress={function () { setScreen(feedbackPrevScreen || "idle"); }}><Text style={st.btnBackText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={st.btnSubmit} onPress={function () {
+                if (!feedbackText.trim()) { showToastMsg("Please describe your feedback", "error"); return; }
+                setScreen("submitting");
+                fetch(API_BASE + "/feedback", {
+                  method: "POST",
+                  headers: authHeaders(),
+                  body: JSON.stringify({ type: feedbackType, text: feedbackText.trim() }),
+                }).then(function (res) {
+                  if (!res.ok) throw new Error("HTTP " + res.status);
+                  showToastMsg("Feedback sent", "success");
+                  setFeedbackText("");
+                  setScreen("feedback");
+                }).catch(function (err) {
+                  if (err instanceof TypeError) { addToQueueFn("feedback", { type: feedbackType, text: feedbackText.trim() }); showToastMsg("Feedback saved offline", "success"); setFeedbackText(""); return; }
+                  showToastMsg(err.message || "Error", "error");
+                  setScreen("feedback");
+                });
+              }}><Text style={st.btnSubmitText}>Send</Text></TouchableOpacity>
+            </View>
+            <TouchableOpacity style={{ marginTop: 20 }} onPress={function () {
+              if (feedbackShowList) { setFeedbackShowList(false); return; }
+              fetch(API_BASE + "/feedback", { headers: authHeaders() })
+                .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+                .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); })
+                .catch(function (err) { showToastMsg(err.message || "Load failed", "error"); });
+            }}><Text style={{ color: C.muted, fontSize: 13 }}>{feedbackShowList ? "Hide History" : "View All Feedback"}</Text></TouchableOpacity>
+            {feedbackShowList && feedbackList.map(function (fb) {
+              return <View key={fb.id} style={[st.reviewItem, { marginTop: 8 }]}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%" }}>
+                  <Text style={{ color: fb.type === "bug" ? C.error : C.accent, fontSize: 12, textTransform: "uppercase" }}>{fb.type}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={{ color: C.muted, fontSize: 12 }}>{fb.created_at.slice(0, 10)}</Text>
+                    <TouchableOpacity onPress={function () {
+                      fetch(API_BASE + "/feedback/" + fb.id, { method: "DELETE", headers: authHeaders() })
+                        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); setFeedbackList(feedbackList.filter(function (f) { return f.id !== fb.id; })); showToastMsg("Deleted", "success"); })
+                        .catch(function (err) { showToastMsg(err.message, "error"); });
+                    }}><Text style={{ color: C.error, fontSize: 12 }}>Delete</Text></TouchableOpacity>
+                  </View>
+                </View>
+                <Text style={{ color: C.text, fontSize: 14, marginTop: 4 }}>{fb.text}</Text>
+              </View>;
+            })}
+          </ScrollView>
+        </KeyboardAvoidingView>
+        {renderToast()}
       </SafeAreaView>
     );
   }

@@ -14,6 +14,7 @@ from app.models.event import (
     EventIn, EventStored, QueryIn, QueryOut,
     DiaryIn, DiaryOut, DiarySummaryOut,
     DiaryParseIn, DiaryParseOut,
+    FeedbackIn, FeedbackOut,
 )
 
 import uuid
@@ -29,6 +30,7 @@ security = HTTPBearer()
 
 EVENTS_FILE = Path(os.environ.get("HUXA_EVENTS_FILE", "/var/lib/huxa/events.jsonl"))
 DIARY_FILE = Path(os.environ.get("HUXA_DIARY_FILE", "/var/lib/huxa/diary.jsonl"))
+FEEDBACK_FILE = Path(os.environ.get("HUXA_FEEDBACK_FILE", "/var/lib/huxa/feedback.jsonl"))
 AUTH_TOKEN = os.environ.get("HUXA_AUTH_TOKEN", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
@@ -346,3 +348,54 @@ def get_diary_summary(date: str) -> DiarySummaryOut:
     )
 
     return DiarySummaryOut(summary=response.choices[0].message.content)
+
+
+@app.post("/feedback", status_code=201, dependencies=[Depends(verify_token)])
+def create_feedback(fb: FeedbackIn) -> FeedbackOut:
+    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    stored = FeedbackOut(
+        id=str(uuid.uuid4()),
+        type=fb.type,
+        text=fb.text,
+        created_at=created_at,
+    )
+
+    FEEDBACK_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(FEEDBACK_FILE, "a") as f:
+        f.write(json.dumps(stored.model_dump(), default=str) + "\n")
+
+    return stored
+
+
+@app.get("/feedback", dependencies=[Depends(verify_token)])
+def list_feedback() -> list[FeedbackOut]:
+    if not FEEDBACK_FILE.exists():
+        return []
+    results = []
+    for line in FEEDBACK_FILE.read_text().strip().splitlines():
+        if not line.strip():
+            continue
+        results.append(FeedbackOut(**json.loads(line)))
+    # Deduplicate by ID (latest wins), filter deleted
+    by_id = {}
+    for r in results:
+        by_id[r.id] = r
+    final = [f for f in by_id.values() if not f.meta.get("deleted")]
+    final.sort(key=lambda f: f.created_at, reverse=True)
+    return final
+
+
+@app.delete("/feedback/{feedback_id}", dependencies=[Depends(verify_token)])
+def delete_feedback(feedback_id: str):
+    deleted = {
+        "id": feedback_id,
+        "type": "bug",
+        "text": "",
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "meta": {"version": 1, "deleted": True},
+    }
+    with open(FEEDBACK_FILE, "a") as f:
+        f.write(json.dumps(deleted) + "\n")
+    return {"status": "deleted"}

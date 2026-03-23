@@ -33,6 +33,7 @@ fi
 export HUXA_AUTH_TOKEN="dev-token"
 export HUXA_EVENTS_FILE="$DATA_DIR/events.jsonl"
 export HUXA_DIARY_FILE="$DATA_DIR/diary.jsonl"
+export HUXA_FEEDBACK_FILE="$DATA_DIR/feedback.jsonl"
 export EXPO_PUBLIC_API_BASE="http://localhost:8000"
 export EXPO_PUBLIC_AUTH_TOKEN="$HUXA_AUTH_TOKEN"
 
