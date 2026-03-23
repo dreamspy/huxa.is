@@ -18,7 +18,7 @@ import NetInfo from "@react-native-community/netinfo";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://mnemo.axex.is";
-const APP_VERSION = "0.2.4";
+const APP_VERSION = "0.2.5";
 
 const C = {
   bg: "#1a1a2e",
@@ -878,7 +878,7 @@ var st = StyleSheet.create({
   row: { flexDirection: "row", width: "100%", gap: 12, marginTop: 12 },
   halfRow: { flexDirection: "row", width: "50%", marginTop: 12 },
   datePickerRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 },
-  input: { width: "100%", backgroundColor: C.input, borderRadius: 25, padding: 14, color: C.text, fontSize: 16, marginBottom: 12 },
+  input: { width: "100%", backgroundColor: C.input, borderRadius: 25, padding: 14, color: C.text, fontSize: 16, marginBottom: 12, outlineOffset: -2 },
   inputText: { color: C.text, fontSize: 16 },
   textArea: { minHeight: 80, textAlignVertical: "top", borderRadius: 12 },
   categoryGrid: { width: "100%", gap: 8 },
