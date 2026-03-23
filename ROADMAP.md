@@ -18,12 +18,25 @@
 - [x] Test if offline pending messages sync automatically when back online
 - [x] Show a list of pending (queued) offline events in the app
 
+**UX**
+- [ ] Make Enter key function as submit/next throughout the app
+
 ## Phase 8.1 — Expo Web Support (replace HTML frontend)
 
 - [x] Install `react-native-web` and `react-dom`
 - [x] Get `npx expo start --web` running
 - [x] Handle web-incompatible components (e.g. `DateTimePicker` needs conditional rendering or web alternative)
-- [ ] Retire `03_frontend/` HTML version — one codebase for iOS, Android, and web
+- [ ] Retire `03_frontend/` — delete directory, remove all references from docs
+- [ ] Update `05_scripts/dev_server.sh` for Expo (iOS/Android + web dev modes)
+- [ ] Add `build:web` npm script to `08_app/package.json`
+- [ ] Update `fabfile.py` deploy to also sync nginx config and reload
+- [ ] Update `01_docs/deployment.md` with Expo web build + deploy flow
+- [ ] Update `01_docs/decisions.md` — frontend decision from PWA to Expo
+- [ ] Update `01_docs/architecture.md` — remove PWA references, add Expo web
+- [ ] Update `README.md` — replace frontend section with Expo, update project structure
+- [ ] Update `02_backend/README.md` — remove old frontend references
+- [ ] Update `05_scripts/README.md` — reflect new dev workflow
+- [ ] Update `CLAUDE.md` — remove `03_frontend/` from file paths, update version bump info
 
 ## Phase 8.2 — Rebrand to HuXa
 
