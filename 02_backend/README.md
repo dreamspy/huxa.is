@@ -15,6 +15,17 @@ FastAPI application for the HuXa event engine.
 
 ## Local Development
 
+The easiest way to run the backend is via the dev server script, which starts both the backend and the Expo frontend:
+
+```bash
+./05_scripts/dev_server.sh          # Backend + Expo (iOS/Android)
+./05_scripts/dev_server.sh --web    # Backend + Expo web (browser)
+```
+
+See `01_docs/deployment.md` for details.
+
+### Running the backend standalone
+
 ```bash
 cd 02_backend
 python3 -m venv venv
@@ -26,12 +37,10 @@ Create a `.env` file (gitignored):
 
 ```bash
 HUXA_AUTH_TOKEN=dev-token
-HUXA_EVENTS_FILE=/tmp/huxa_events.jsonl
-HUXA_DIARY_FILE=/tmp/huxa_diary.jsonl
+HUXA_EVENTS_FILE=/tmp/huxa_dev/events.jsonl
+HUXA_DIARY_FILE=/tmp/huxa_dev/diary.jsonl
 OPENAI_API_KEY=sk-...
 ```
-
-Run the backend:
 
 ```bash
 set -a && source .env && set +a
