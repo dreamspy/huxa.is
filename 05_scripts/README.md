@@ -6,13 +6,14 @@ Utility scripts for working with HuXa's JSONL data files locally.
 
 ### dev_server.sh
 
-Start both the backend (port 8000) and frontend (port 3000) for local development. Sets up the venv automatically on first run. Data is stored in `/tmp/huxa_dev/` so it won't touch production files.
+Start the backend (port 8000) and Expo dev server for local development. Sets up the venv automatically on first run. Data is stored in `/tmp/huxa_dev/` so it won't touch production files.
 
 ```bash
-bash 05_scripts/dev_server.sh
+./05_scripts/dev_server.sh          # Backend + Expo (iOS/Android — press i for simulator)
+./05_scripts/dev_server.sh --web    # Backend + Expo web (http://localhost:8081)
 ```
 
-Loads `02_backend/.env` if it exists, otherwise uses sensible defaults (token: `dev-token`).
+Loads `OPENAI_API_KEY` from `02_backend/.env`. Overrides auth token to `dev-token` and data paths to `/tmp/huxa_dev/`. The Expo app is auto-configured to use the local backend via `EXPO_PUBLIC_API_BASE`.
 
 ### summarize_day.py
 
