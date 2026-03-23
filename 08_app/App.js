@@ -17,7 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
-const API_BASE = "https://mnemo.axex.is";
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://mnemo.axex.is";
 const APP_VERSION = "0.2.1";
 
 const C = {
@@ -118,7 +118,9 @@ function AppContent() {
   var _y = useState(false), queryLoading = _y[0], setQueryLoading = _y[1];
 
   useEffect(function () {
-    AsyncStorage.getItem("huxa_token").then(function (t) { if (t) setToken(t); });
+    var envToken = process.env.EXPO_PUBLIC_AUTH_TOKEN;
+    if (envToken) { setToken(envToken); }
+    else { AsyncStorage.getItem("huxa_token").then(function (t) { if (t) setToken(t); }); }
     loadQueue();
   }, []);
 
