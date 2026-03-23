@@ -18,7 +18,7 @@
 ## Architecture Context
 
 - Single-user system
-- Production server: `mnemo.axex.is` (moving to `huxa.is`)
+- Production server: `huxa.is`
 - File-based event store (JSONL)
 - FastAPI backend served by Uvicorn behind Nginx behind Cloudflare
 - systemd manages the process

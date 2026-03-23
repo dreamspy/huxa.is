@@ -1,10 +1,11 @@
 # HuXa Build Roadmap
 
-## Backlog
+## Some Todos
 
-- [ ] Let's go over the documentation and try impementing and testing one feature
-	- [ ] add feature / bug report
-- [ ] Fix PWD not being fullscreen
+- [x] Let's go over the documentation and try impementing and testing one feature
+	- [x] add feature / bug report
+- [x] Fix PWD not being fullscreen
+- [ ] Check why there are three origins in CORS config (`huxa.is`, `localhost:3000`, `localhost:8081`) — clean up if not needed
 - [ ] Make Enter key function as submit/next throughout the app
 - [ ] Voice input via Whisper (on-device or server-side speech-to-text for logging and diary)
 

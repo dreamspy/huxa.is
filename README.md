@@ -1,6 +1,6 @@
 # HuXa
 
-**Server:** mnemo.axex.is
+**Server:** huxa.is
 
 A personal event-sourced logging engine designed to become an AI-augmented second brain.
 

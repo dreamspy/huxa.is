@@ -35,7 +35,7 @@ API keys (e.g. `OPENAI_API_KEY`) are loaded from `02_backend/.env`.
 
 1. Run `./05_scripts/dev_server.sh`
 2. Scan the QR code with the Expo Go app
-3. Note: the app will connect to the **production** server (`mnemo.axex.is`) because `localhost` on the phone points to the phone itself, not your Mac
+3. Note: the app will connect to the **production** server (`huxa.is`) because `localhost` on the phone points to the phone itself, not your Mac
 
 ### Testing in Browser
 

@@ -142,7 +142,7 @@ Nginx serves the Expo web build as static files and proxies API requests to Uvic
 ```nginx
 server {
     listen 443 ssl;
-    server_name mnemo.axex.is;
+    server_name huxa.is;
 
     root /opt/huxa/08_app/dist;
     index index.html;
@@ -163,7 +163,7 @@ Full config in `04_infrastructure/nginx/huxa.conf`.
 ## Cloudflare Integration
 
 Cloudflare provides:
-- **DNS:** `mnemo.axex.is` points to the EC2 instance (proxied through Cloudflare)
+- **DNS:** `huxa.is` points to the EC2 instance (proxied through Cloudflare)
 - **DDoS protection:** Automatic
 - **TLS:** Full (strict) mode — Cloudflare terminates client TLS, connects to origin over TLS
 - **Caching:** Static assets cached at edge
