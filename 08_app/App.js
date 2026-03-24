@@ -478,10 +478,10 @@ function AppContent() {
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>{editingEventId ? "Edit " : "New "}{selectedType}</Text>
             <View style={st.datePickerRow}>
-              <TouchableOpacity onPress={function () { setComposeDate(shiftDate(composeDate, -1)); }}><Text style={st.dateArrow}>{"\u25C0"}</Text></TouchableOpacity>
-              {Platform.OS === "web" ? <WebDateInput value={composeDate} mode="date" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="date" display="default" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
-              <TouchableOpacity onPress={function () { setComposeDate(shiftDate(composeDate, 1)); }}><Text style={st.dateArrow}>{"\u25B6"}</Text></TouchableOpacity>
-              {Platform.OS === "web" ? <WebDateInput value={composeDate} mode="time" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="time" display="default" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
+              <TouchableOpacity onPress={function () { setComposeDate(shiftDate(composeDate, -1)); }}><Text style={st.dateArrowLeft}>{"\u25C0"}</Text></TouchableOpacity>
+              {Platform.OS === "web" ? <WebDateInput value={composeDate} mode="date" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="date" display="compact" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
+              <TouchableOpacity onPress={function () { setComposeDate(shiftDate(composeDate, 1)); }}><Text style={st.dateArrowRight}>{"\u25B6"}</Text></TouchableOpacity>
+              {Platform.OS === "web" ? <WebDateInput value={composeDate} mode="time" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="time" display="compact" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
             </View>
             <TextInput style={[st.input, st.textArea]} placeholder="What happened?" placeholderTextColor={C.muted} value={composeText} onChangeText={setComposeText} multiline numberOfLines={3} />
             <View style={st.row}>
@@ -546,9 +546,9 @@ function AppContent() {
         <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <Text style={st.label}>History</Text>
         <View style={st.datePickerRow}>
-          <TouchableOpacity onPress={function () { var d = shiftDate(new Date(historyDate + "T12:00:00"), -1).toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); }}><Text style={st.dateArrow}>{"\u25C0"}</Text></TouchableOpacity>
-          {Platform.OS === "web" ? <WebDateInput value={new Date(historyDate + "T12:00:00")} mode="date" onChange={function (e, date) { if (date) { var d = date.toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); } }} /> : <DateTimePicker value={new Date(historyDate + "T12:00:00")} mode="date" display="default" themeVariant="dark" onChange={function (e, date) { if (date) { var d = date.toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); } }} />}
-          <TouchableOpacity onPress={function () { var d = shiftDate(new Date(historyDate + "T12:00:00"), 1).toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); }}><Text style={st.dateArrow}>{"\u25B6"}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={function () { var d = shiftDate(new Date(historyDate + "T12:00:00"), -1).toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); }}><Text style={st.dateArrowLeft}>{"\u25C0"}</Text></TouchableOpacity>
+          {Platform.OS === "web" ? <WebDateInput value={new Date(historyDate + "T12:00:00")} mode="date" onChange={function (e, date) { if (date) { var d = date.toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); } }} /> : <DateTimePicker value={new Date(historyDate + "T12:00:00")} mode="date" display="compact" themeVariant="dark" onChange={function (e, date) { if (date) { var d = date.toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); } }} />}
+          <TouchableOpacity onPress={function () { var d = shiftDate(new Date(historyDate + "T12:00:00"), 1).toISOString().slice(0, 10); setHistoryDate(d); doFetchHistory(historyTab, d); }}><Text style={st.dateArrowRight}>{"\u25B6"}</Text></TouchableOpacity>
         </View>
         <View style={st.historyTabs}>
           <TouchableOpacity style={[st.historyTab, historyTab === "events" && st.historyTabActive]} onPress={function () { setHistoryTab("events"); doFetchHistory("events", historyDate); }}><Text style={[st.historyTabText, historyTab === "events" && st.historyTabTextActive]}>Events</Text></TouchableOpacity>
@@ -889,8 +889,9 @@ var st = StyleSheet.create({
   btnBackText: { color: C.muted, fontSize: 14, fontWeight: "600", textTransform: "uppercase" },
   row: { flexDirection: "row", width: "100%", gap: 12, marginTop: 12 },
   halfRow: { flexDirection: "row", width: "50%", marginTop: 12 },
-  datePickerRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 16 },
-  dateArrow: { color: C.muted, fontSize: 18, paddingHorizontal: 8 },
+  datePickerRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 16 },
+  dateArrowLeft: { color: C.muted, fontSize: 18, marginRight: Platform.OS === "web" ? 4 : -4 },
+  dateArrowRight: { color: C.muted, fontSize: 18, marginLeft: Platform.OS === "web" ? 4 : 6 },
   input: { width: "100%", backgroundColor: C.input, borderRadius: 25, padding: 14, color: C.text, fontSize: 16, marginBottom: 12, outlineOffset: -2 },
   inputText: { color: C.text, fontSize: 16 },
   textArea: { minHeight: 80, textAlignVertical: "top", borderRadius: 12 },
