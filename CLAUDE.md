@@ -52,6 +52,7 @@
 - **Bump version on every commit.** Version lives in `08_app/App.js` (`APP_VERSION`). Before committing, ask the user which digit to increment: major (1st), minor (2nd), or patch (3rd).
 - **Include version in commit messages.** When the version is bumped, include it in the commit subject, e.g. `"Add feature X (v0.3.0)"`. If no version bump, don't add it.
 - **Expo is the sole frontend.** All UI/frontend work goes in `08_app/` (Expo/React Native). Serves iOS, Android, and web from a single codebase.
+- **Update CHANGELOG.md on every commit.** Add a bullet under the current version section describing what changed. When the version is bumped, create a new section header with the version and date.
 - **Archive completed roadmap phases.** When all items in a `ROADMAP.md` phase are done, move it to the Archive section at the bottom (below the `---` separator).
 
 ## File Paths
@@ -69,3 +70,4 @@
 | `08_app/App.js` | Expo app (main source file) |
 | `08_app/dist/` | Expo web build (served by Nginx in production) |
 | `fabfile.py` | Fabric deploy commands |
+| `CHANGELOG.md` | Version history and release notes |
