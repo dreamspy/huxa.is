@@ -82,6 +82,17 @@ function todayStr() { return new Date().toISOString().slice(0, 10); }
 function yesterdayStr() { var d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
 function formatTime(s) { return s ? s.slice(11, 16) : ""; }
 
+function confirmAction(title, message, onConfirm) {
+  if (Platform.OS === "web") {
+    if (window.confirm(title + "\n" + message)) onConfirm();
+  } else {
+    Alert.alert(title, message, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: onConfirm },
+    ]);
+  }
+}
+
 export default function App() {
   return <SafeAreaProvider><AppContent /></SafeAreaProvider>;
 }
@@ -262,25 +273,19 @@ function AppContent() {
   }
 
   function deleteEvent(ev) {
-    Alert.alert("Delete Event", "Are you sure you want to delete this event?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: function () {
-        fetch(API_BASE + "/events/" + ev.id, { method: "DELETE", headers: authHeaders() })
-          .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); doFetchHistory(historyTab, historyDate); })
-          .catch(function (err) { showToastMsg(err.message, "error"); });
-      }},
-    ]);
+    confirmAction("Delete Event", "Are you sure you want to delete this event?", function () {
+      fetch(API_BASE + "/events/" + ev.id, { method: "DELETE", headers: authHeaders() })
+        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); doFetchHistory(historyTab, historyDate); })
+        .catch(function (err) { showToastMsg(err.message, "error"); });
+    });
   }
 
   function deleteDiary(date) {
-    Alert.alert("Delete Diary", "Are you sure you want to delete this diary entry?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: function () {
-        fetch(API_BASE + "/diary/" + date, { method: "DELETE", headers: authHeaders() })
-          .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); doFetchHistory(historyTab, historyDate); })
-          .catch(function (err) { showToastMsg(err.message, "error"); });
-      }},
-    ]);
+    confirmAction("Delete Diary", "Are you sure you want to delete this diary entry?", function () {
+      fetch(API_BASE + "/diary/" + date, { method: "DELETE", headers: authHeaders() })
+        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); doFetchHistory(historyTab, historyDate); })
+        .catch(function (err) { showToastMsg(err.message, "error"); });
+    });
   }
 
   function startDiary(date) {
@@ -381,12 +386,9 @@ function AppContent() {
   // --- QUEUE ---
   if (screen === "queue") {
     var removeFromQueue = function (id) {
-      Alert.alert("Remove", "Remove this item from the queue?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Remove", style: "destructive", onPress: function () {
-          saveQueueItems(queue.filter(function (q) { return q.id !== id; }));
-        }}
-      ]);
+      confirmAction("Remove", "Remove this item from the queue?", function () {
+        saveQueueItems(queue.filter(function (q) { return q.id !== id; }));
+      });
     };
     return (
       <SafeAreaView style={st.container}>
