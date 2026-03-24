@@ -49,7 +49,7 @@
 - Do not add complex auth flows — phase 1 is bearer token.
 - Test changes against the actual JSONL append workflow.
 - **Keep ALL docs in sync.** When implementing a feature, fixing a bug, or making any meaningful change, update all relevant files in the same commit: READMEs (`README.md`, `02_backend/README.md`, `05_scripts/README.md`), docs in `01_docs/`, `ROADMAP.md` (tick off completed items), and `CLAUDE.md` if architecture or rules change. If you add, remove, or change a script, endpoint, feature, or config option, every affected doc must reflect it.
-- **Bump version on every commit.** Version lives in `08_app/App.js` (`APP_VERSION`). Before committing, ask the user which digit to increment: major (1st), minor (2nd), or patch (3rd).
+- **Bump version before each deploy.** Version lives in `08_app/App.js` (`APP_VERSION`). Before deploying (not every commit), ask the user which digit to increment: major (1st), minor (2nd), or patch (3rd). Multiple commits can share a version.
 - **Include version in commit messages.** When the version is bumped, include it in the commit subject, e.g. `"Add feature X (v0.3.0)"`. If no version bump, don't add it.
 - **Expo is the sole frontend.** All UI/frontend work goes in `08_app/` (Expo/React Native). Serves iOS, Android, and web from a single codebase.
 - **Update CHANGELOG.md on every commit.** Add a bullet under the current version section describing what changed. When the version is bumped, create a new section header with the version and date.
