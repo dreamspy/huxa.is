@@ -14,7 +14,7 @@
 - [x] Rename app throughout codebase (frontend, app, backend, configs)
 - [x] Rename server dirs and service files
 - [x] Buy huxa.is domain
-- [ ] Update Cloudflare DNS and nginx for new domain
+- [x] Update Cloudflare DNS and nginx for new domain
 - [ ] New app icon and branding
 
 ## Phase 10 — Standalone App on iPhone

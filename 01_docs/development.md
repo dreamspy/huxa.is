@@ -101,5 +101,5 @@ fab restart    # Restart without deploying new code
 cd 08_app && npm run build:web && cd ..
 git add 08_app/dist && git commit -m "Build web dist"
 git push origin main
-ssh mnemo "cd /opt/huxa && sudo git pull origin main && sudo systemctl restart huxa"
+ssh huxa "cd /opt/huxa && sudo git pull origin main && sudo systemctl restart huxa"
 ```

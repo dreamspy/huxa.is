@@ -3,13 +3,11 @@ import subprocess
 
 from fabric import task, Connection
 
-HOST = "54.246.181.20"
-USER = "ubuntu"
-KEY = os.path.expanduser("~/.ssh/AWSKeypair.pem")
+HOST = "huxa"
 
 
 def _conn():
-    return Connection(HOST, user=USER, connect_kwargs={"key_filename": KEY})
+    return Connection(HOST)
 
 
 @task

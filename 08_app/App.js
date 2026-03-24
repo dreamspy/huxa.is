@@ -18,7 +18,7 @@ import NetInfo from "@react-native-community/netinfo";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.2.7";
+const APP_VERSION = "0.2.8";
 
 const C = {
   bg: "#1a1a2e",
