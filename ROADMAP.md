@@ -1,26 +1,13 @@
 # HuXa Build Roadmap
 
-## Some Todos
+## Backlog
 
-- [x] Let's go over the documentation and try impementing and testing one feature
-	- [x] add feature / bug report
-- [x] Fix PWD not being fullscreen
-- [ ] Check why there are three origins in CORS config (`huxa.is`, `localhost:3000`, `localhost:8081`) — clean up if not needed
-- [ ] Make Enter key function as submit/next throughout the app
-- [ ] Voice input via Whisper (on-device or server-side speech-to-text for logging and diary)
-
-## Phase 8.2 — Rebrand to HuXa
-
-- [x] Rename app throughout codebase (frontend, app, backend, configs)
-- [x] Rename server dirs and service files
-- [x] Buy huxa.is domain
-- [x] Update Cloudflare DNS and nginx for new domain
+- [ ] Voice input via Whisper (on-device or server-side speech-to-text)
 - [ ] New app icon and branding
 
 ## Phase 10 — Standalone App on iPhone
 
-- [ ] Get Apple Developer account ($99/year)
-	- [ ] Need a passport is drivers license
+- [ ] Get Apple Developer account ($99/year) — waiting for confirmation
 - [ ] Install EAS CLI (`npm install -g eas-cli`)
 - [ ] Configure `eas.json` and app signing
 - [ ] App icon and splash screen
@@ -31,11 +18,6 @@
 ## Phase 11 — Cloudflare App Lockdown
 
 - [ ] Set up Cloudflare Access or app lockdown (replace IP lockdown)
-
-## Phase 12 — Feature Ideas / Bug Reports
-
-- [ ] Add in-app feature to log a feature idea or bug report
-- [ ] Store in separate JSONL or send to GitHub Issues
 
 ## Phase 13 — Multi-User (Google OAuth)
 
@@ -63,14 +45,17 @@ The current `/query` endpoint sends the entire event log to GPT. At ~10 events/d
 
 ## Archive
 
-### Phase 8 — Native App ✅
+### Phase 12 — Feature Ideas / Bug Reports ✅
 
-- [x] Pick a framework (Expo / React Native) and set up the project
-- [x] Connect to existing backend API (bearer token auth)
-- [x] Replicate core logging flow (category → compose → submit)
-- [x] Replicate history view with editing
-- [x] Replicate diary flow
-- [x] Explore native-only features (push notifications, haptics, etc.)
+- [x] Add in-app feature to log a feature idea or bug report
+- [x] Store in separate JSONL
+
+### Phase 8.2 — Rebrand to HuXa ✅
+
+- [x] Rename app throughout codebase (frontend, app, backend, configs)
+- [x] Rename server dirs and service files
+- [x] Buy huxa.is domain
+- [x] Update Cloudflare DNS and nginx for new domain
 
 ### Phase 8.1 — Expo Web Support ✅
 
@@ -80,94 +65,18 @@ The current `/query` endpoint sends the entire event log to GPT. At ~10 events/d
 - [x] Retire `03_frontend/` — delete directory, remove all references from docs
 - [x] Update all docs, scripts, and deploy tooling for Expo
 
-### Phase 1 — Local Backend ✅
+### Phase 8 — Native App ✅
 
-- [x] Set up Python venv and install dependencies
-- [x] Run uvicorn locally
-- [x] Test `POST /events` with curl
-- [x] Test `GET /health` with curl
-- [x] Verify events.jsonl gets appended correctly
+- [x] Pick a framework (Expo / React Native) and set up the project
+- [x] Connect to existing backend API (bearer token auth)
+- [x] Replicate core logging flow (category → compose → submit)
+- [x] Replicate history view with editing
+- [x] Replicate diary flow
+- [x] Explore native-only features (push notifications, haptics, etc.)
 
-### Phase 2 — Local Frontend ✅
+### Phase 9 — GPT Query in App ✅
 
-- [x] Build PWA (log button, category picker, text input, metrics)
-- [x] Wire frontend to local backend
-- [x] Add CORS middleware for local dev
-- [x] Test full flow: log → category → entry → submit → verify in JSONL
-
-### Phase 3 — Server Setup ✅
-
-- [x] Provision EC2 instance (Ubuntu 24.04, eu-west-1)
-- [x] Create huxa user and directory structure (`/opt`, `/var/lib`, `/var/log`, `/etc`)
-- [x] Clone repo to `/opt/huxa/`
-- [x] Set up Python venv on server
-- [x] Copy config and set auth token
-- [x] Install and start systemd service
-- [x] Install and configure Nginx
-- [x] Point Cloudflare DNS to the instance
-- [x] Test `POST /events` against live server
-
-### Phase 4 — Deploy Frontend ✅
-
-- [x] Decide hosting: serve static files from Nginx
-- [x] Deploy PWA to server
-- [x] Test full flow over the internet
-
-### Phase 4.5 — iPhone Quick Logging ✅
-
-- [x] Add to Home Screen on iPhone (PWA)
-- [x] Test full logging flow on mobile
-- [x] Optimize for frictionless mobile use (PWA in dock)
-
-### Phase 4.6 — AI Query ✅
-
-- [x] Add `POST /query` endpoint (GPT-4o-mini against event log)
-- [x] Add query input + answer display in frontend
-
-### Phase 4.7 — Diary Feature ✅
-
-- [x] Structured daily diary with step-by-step wizard (scale + text questions)
-- [x] `POST /diary` and `GET /diary/{date}` endpoints
-- [x] Date picker with Yesterday/Today shortcuts
-- [x] AI-generated daily summary from logged events
-- [x] Review screen before saving
-
-### Phase 4.8 — History View ✅
-
-- [x] History screen with Events and Diary tabs
-- [x] Single date and date range filtering
-
-### Phase 4.9 — Diary Quick Entry ✅
-
-- [x] Bulk mode: all scale questions on one screen, single textarea for text answers
-- [x] AI parsing of free-form text into structured diary fields (`POST /diary/parse-text`)
-- [x] Edit from review goes to step-by-step wizard pre-filled with parsed answers
-- [x] Removed Diary from event type categories
-
-### Phase 4.10 — Logging UX Improvements ✅
-
-- [x] Allow user to change date when logging (default to now, but allow override)
-- [x] Remove the Metrics option from the logging form
-- [x] Add a "Submit & New" flow for rapid-fire logging (submit current log and immediately start a new one, possibly with inline type selection)
-
-### Phase 4.11 — History Editing ✅
-
-- [x] Allow editing of events from the history view
-- [x] Allow editing of diary entries from the history view
-
-### Phase 5 — Offline Queue ✅
-
-- [x] Queue events in IndexedDB/localStorage when offline
-- [x] Sync queued events when connection is restored
-- [x] Show pending/synced status indicators
-- [x] Handle conflicts gracefully
-
-### Phase 6 — Syncthing ✅
-
-- [x] Install Syncthing on server and Mac
-- [x] Share `/var/lib/huxa/`
-- [x] Verify events.jsonl syncs to Mac
-- [x] Test running scripts and Claude CLI against synced file
+- [x] Add "Ask HuXa" query input and answer display to Expo app
 
 ### Phase 7 — Harden ✅
 
@@ -175,9 +84,31 @@ The current `/query` endpoint sends the entire event log to GPT. At ~10 events/d
 - [x] Add basic rate limiting in Nginx
 - [x] Add security headers in Nginx (HSTS, X-Frame-Options, nosniff, XSS, referrer)
 - [x] Restrict EC2 security group to Cloudflare IPs only (ports 80/443)
-- [x] ~~Set up log rotation~~ (deferred — logs are tiny)
-- [x] ~~Automated backups of events.jsonl~~ (covered by Syncthing sync to Mac)
+- [x] fail2ban, UFW firewall, SSH password auth disabled
 
-### Phase 9 — GPT Query in App ✅
+### Phase 6 — Syncthing ✅
 
-- [x] Add "Ask HuXa" query input and answer display to Expo app
+- [x] Install Syncthing on server and Mac
+- [x] Share `/var/lib/huxa/`
+- [x] Verify events.jsonl syncs to Mac
+
+### Phase 5 — Offline Queue ✅
+
+- [x] Queue events in AsyncStorage when offline
+- [x] Sync queued events when connection is restored
+- [x] Show pending/synced status indicators
+
+### Phase 4 — Frontend & Features ✅
+
+- [x] PWA frontend → replaced by Expo (iOS, Android, web)
+- [x] AI query endpoint (GPT-4o-mini)
+- [x] Structured diary with step-by-step wizard and quick entry
+- [x] History view with editing and deletion
+- [x] Logging UX: date override, submit & log another
+- [x] PWA standalone mode with custom icon
+
+### Phase 1–3 — Backend & Server ✅
+
+- [x] FastAPI backend with JSONL event store
+- [x] EC2 instance with systemd, Nginx, Cloudflare
+- [x] Fabric deploy pipeline
