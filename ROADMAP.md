@@ -36,7 +36,14 @@ The current `/query` endpoint sends the entire event log to GPT. At ~10 events/d
 - [ ] Query by similarity: find relevant events, send only those to GPT
 - [ ] Fallback: add date range filter to `/query` endpoint as interim solution
 
-## Phase 16 — Voice Input (Whisper)
+## Phase 16 — Landing Page
+
+- [ ] Public welcome page at huxa.is for unauthenticated visitors
+- [ ] App description, screenshots, and feature overview
+- [ ] Links to App Store / TestFlight
+- [ ] Documentation / getting started guide
+
+## Phase 17 — Voice Input (Whisper)
 
 - [ ] Add voice-to-text for logging and diary entry
 - [ ] Evaluate on-device vs server-side transcription
