@@ -2,6 +2,13 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.2.13 — 2026-03-24
+
+- Fix diary scale grid to show 5 numbers per row consistently across web and native
+- Remove separate diary date screen; add inline date picker to diary summary
+- Fix web date picker not opening (showPicker() fix)
+- Add spacing between date arrow and time picker on web
+
 ## v0.2.12 — 2026-03-24
 
 - Add back/forward date arrows on compose and history screens
