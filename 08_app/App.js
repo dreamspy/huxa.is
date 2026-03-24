@@ -33,12 +33,15 @@ const C = {
 };
 
 function WebDateInput(props) {
+  var inputRef = useRef(null);
   var val = props.mode === "time"
     ? props.value.toTimeString().slice(0, 5)
     : props.value.toISOString().slice(0, 10);
   return React.createElement("input", {
+    ref: inputRef,
     type: props.mode === "time" ? "time" : "date",
     value: val,
+    onClick: function (e) { e.stopPropagation(); if (inputRef.current && inputRef.current.showPicker) inputRef.current.showPicker(); },
     onChange: function (e) {
       var d = new Date(props.value);
       if (props.mode === "time") {
@@ -317,7 +320,7 @@ function AppContent() {
       setScreen("diary-summary");
     }).catch(function (err) {
       if (err instanceof TypeError) { setDiarySummary("Offline"); setDiaryHasExisting(false); setScreen("diary-summary"); return; }
-      showToastMsg(err.message, "error"); setScreen("diary-date");
+      showToastMsg(err.message, "error"); setScreen("idle");
     });
   }
 
@@ -381,7 +384,7 @@ function AppContent() {
         <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <View style={st.idleButtons}>
           <TouchableOpacity style={st.btn} onPress={function () { if (!token) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
-          <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (!token) setScreen("token"); else { setDiaryDate(todayStr()); setScreen("diary-date"); } }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
+          <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (!token) setScreen("token"); else startDiary(todayStr()); }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={openHistory}><Text style={st.btnText}>History</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (!token) setScreen("token"); else { setQueryText(""); setQueryAnswer(""); setScreen("query"); } }}><Text style={st.btnText}>Ask HuXa</Text></TouchableOpacity>
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
@@ -596,22 +599,6 @@ function AppContent() {
     );
   }
 
-  // --- DIARY DATE ---
-  if (screen === "diary-date") {
-    return (
-      <SafeAreaView style={st.container}>
-        <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
-        <Text style={st.label}>Diary - Pick a Date</Text>
-        <View style={st.row}>
-          <TouchableOpacity style={st.btnBack} onPress={function () { startDiary(yesterdayStr()); }}><Text style={st.btnBackText}>Yesterday</Text></TouchableOpacity>
-          <TouchableOpacity style={st.btnSubmit} onPress={function () { startDiary(todayStr()); }}><Text style={st.btnSubmitText}>Today</Text></TouchableOpacity>
-        </View>
-        <View style={{ height: 12 }} />
-        <View style={st.halfRow}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
-      </SafeAreaView>
-    );
-  }
-
   // --- DIARY LOADING ---
   if (screen === "diary-loading") {
     return <SafeAreaView style={st.container}><Text style={st.label}>Loading...</Text></SafeAreaView>;
@@ -623,7 +610,12 @@ function AppContent() {
       <SafeAreaView style={st.container}>
         <ScrollView contentContainerStyle={st.scrollContent}>
           <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
-          <Text style={st.label}>{diaryHasExisting ? "Existing Entry" : "Today's Events Summary"}</Text>
+          <Text style={st.label}>Diary</Text>
+          <View style={st.datePickerRow}>
+            <TouchableOpacity onPress={function () { var d = shiftDate(new Date(diaryDate + "T12:00:00"), -1).toISOString().slice(0, 10); startDiary(d); }}><Text style={st.dateArrowLeft}>{"\u25C0"}</Text></TouchableOpacity>
+            {Platform.OS === "web" ? <WebDateInput value={new Date(diaryDate + "T12:00:00")} mode="date" onChange={function (e, date) { if (date) { startDiary(date.toISOString().slice(0, 10)); } }} /> : <DateTimePicker value={new Date(diaryDate + "T12:00:00")} mode="date" display="compact" themeVariant="dark" onChange={function (e, date) { if (date) { startDiary(date.toISOString().slice(0, 10)); } }} />}
+            <TouchableOpacity onPress={function () { var d = shiftDate(new Date(diaryDate + "T12:00:00"), 1).toISOString().slice(0, 10); startDiary(d); }}><Text style={st.dateArrowRight}>{"\u25B6"}</Text></TouchableOpacity>
+          </View>
           <View style={st.summaryBox}><Text style={st.summaryText}>{diarySummary}</Text></View>
           {diaryHasExisting && SCALE_QUESTIONS.concat(TEXT_QUESTIONS).map(function (q) {
             var ans = diaryAnswers[q.key];
