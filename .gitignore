@@ -61,3 +61,6 @@ htmlcov/
 
 # Allow Expo web build (served by nginx)
 !08_app/dist/
+
+# Rust/Tauri build artifacts
+09_desktop/src-tauri/target/
