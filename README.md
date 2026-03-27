@@ -75,6 +75,7 @@ Code and data are strictly separated. The event file never lives inside the repo
 - **CDN/DNS:** Cloudflare
 - **Server:** AWS EC2 (Ubuntu 22.04)
 - **Frontend:** Expo (React Native) — iOS, Android, and web from a single codebase
+- **Desktop:** Tauri — native macOS app wrapping the Expo web build
 - **Sync:** Syncthing (server → Mac)
 
 ### systemd → Uvicorn
@@ -124,4 +125,5 @@ See [01_docs/development.md](01_docs/development.md) for the full dev workflow �
 06_config/        → Configuration templates
 07_examples/      → Example event data
 08_app/           → Expo app (iOS, Android, web)
+09_desktop/       → Tauri desktop app (macOS)
 ```

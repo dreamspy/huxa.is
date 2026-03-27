@@ -71,6 +71,17 @@ npm run build:web    # outputs to 08_app/dist/
 
 This is done automatically by `fab deploy`, so you usually don't need to run it manually.
 
+### Building for Desktop
+
+To build the native macOS desktop app (Tauri):
+
+```bash
+./05_scripts/build_desktop.sh              # Full build (Expo web + Tauri)
+./05_scripts/build_desktop.sh --skip-web   # Skip Expo web build if dist/ is fresh
+```
+
+Requires Rust/Cargo and the Tauri CLI (`cargo install tauri-cli`). The installer is output to `09_desktop/src-tauri/target/release/bundle/`.
+
 ## Deploying
 
 ### Quick Deploy

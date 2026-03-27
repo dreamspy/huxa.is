@@ -10,11 +10,9 @@
     "windows": [
       {
         "title": "HuXa",
-        "width": 420,
-        "height": 800,
-        "resizable": true,
-        "minWidth": 360,
-        "minHeight": 600
+        "width": 430,
+        "height": 932,
+        "resizable": false
       }
     ],
     "security": {

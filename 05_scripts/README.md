@@ -59,6 +59,17 @@ Quick one-liner to pretty-print `events.jsonl` with `jq`.
 bash read_events.sh
 ```
 
+### build_desktop.sh
+
+Build the HuXa desktop application using Tauri. First builds the Expo web frontend into `08_app/dist/`, then compiles the native macOS app with `cargo tauri build`.
+
+```bash
+./05_scripts/build_desktop.sh              # Full build (Expo web + Tauri)
+./05_scripts/build_desktop.sh --skip-web   # Skip Expo web build (use existing dist/)
+```
+
+Requires Rust/Cargo and the Tauri CLI (`cargo install tauri-cli`). The built app and installer end up in `09_desktop/src-tauri/target/release/bundle/`.
+
 ### setup_shortcuts.sh
 
 Creates convenience symlinks in `~/huxa/` pointing to the server's runtime directories (`/opt/huxa`, `/var/lib/huxa`, `/var/log/huxa`, `/etc/huxa`). Run once on the Ubuntu server after deployment.
