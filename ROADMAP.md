@@ -10,6 +10,13 @@
 - [ ] Distribute via TestFlight for personal use
 - [ ] (Optional) Submit to App Store for public distribution
 
+## Tailscale (Deploy from Anywhere)
+
+- [x] Install Tailscale on Mac
+- [x] Install Tailscale on server
+- [x] Update SSH config to use Tailscale IP (`100.98.66.32`)
+- [ ] Verify `fab deploy` works over Tailscale
+
 ## Cloudflare App Lockdown
 
 - [ ] Set up Cloudflare Access or app lockdown (replace IP lockdown)

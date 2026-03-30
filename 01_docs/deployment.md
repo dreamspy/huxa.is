@@ -54,6 +54,17 @@ cd 08_app
 npm run build:web    # outputs to 08_app/dist/
 ```
 
+## SSH Access
+
+SSH to the server uses the alias `ssh huxa` (configured in `~/.ssh/config`). Two connection methods are available:
+
+- **Tailscale** (`100.98.66.32`) — works from any network. This is the default.
+- **Direct EC2** (`54.246.181.20`) — only works from an allowed IP (Cloudflare/security group restricted).
+
+To switch, edit `~/.ssh/config` and uncomment the desired `HostName` line under `Host huxa`.
+
+Tailscale is installed on both the server and the dev Mac. It creates a private mesh network so `fab deploy` and SSH work from any network (hotspot, hotel wifi, etc.).
+
 ## Code Deployment
 
 Deployment is automated with [Fabric](https://www.fabfile.org/) via `fabfile.py` in the project root. Requires `fabric` installed locally (`pipx install fabric`).
@@ -69,8 +80,10 @@ This:
 2. Commits the build if changed
 3. Pushes to `origin/main`
 4. Pulls on the server
-5. Copies nginx config and reloads
-6. Restarts the huxa service
+5. Installs Python dependencies from `requirements.txt`
+6. Ensures data directories exist (e.g. `/var/lib/huxa/attachments/`)
+7. Copies nginx config and reloads
+8. Restarts the huxa service
 
 ### Available Commands
 
