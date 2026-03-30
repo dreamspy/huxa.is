@@ -2,6 +2,12 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.2.16 — 2026-03-30
+
+- Add image attachment support to feedback/bug reports (pick from photo library, preview, upload)
+- Backend: new attachment upload and serve endpoints, images stored in /var/lib/huxa/attachments/
+- Nginx: /attachments proxy location, 10MB upload limit on /reports
+
 ## v0.2.15 — 2026-03-28
 
 - Fix dark bar below safe area in light mode by setting native root background via expo-system-ui
