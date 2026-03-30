@@ -2,12 +2,19 @@ import os
 import subprocess
 
 from fabric import task, Connection
+from paramiko.config import SSHConfig
 
 HOST = "huxa"
 
 
 def _conn():
-    return Connection(HOST)
+    ssh_config = SSHConfig.from_path(os.path.expanduser("~/.ssh/config"))
+    host_config = ssh_config.lookup(HOST)
+    return Connection(
+        host=host_config["hostname"],
+        user=host_config.get("user"),
+        connect_kwargs={"key_filename": host_config.get("identityfile")},
+    )
 
 
 @task
