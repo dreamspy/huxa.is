@@ -15,7 +15,7 @@
 - [x] Install Tailscale on Mac
 - [x] Install Tailscale on server
 - [x] Update SSH config to use Tailscale IP (`100.98.66.32`)
-- [ ] Verify `fab deploy` works over Tailscale
+- [x] Verify `fab deploy` works over Tailscale
 
 ## Cloudflare App Lockdown
 
@@ -80,15 +80,28 @@ The current `/query` endpoint sends the entire event log to GPT. At ~10 events/d
 - [ ] Links to App Store / TestFlight
 - [ ] Documentation / getting started guide
 
-## Voice Input (Whisper)
+## Voice Input
 
-- [ ] Add voice-to-text for logging and diary entry
-- [ ] Evaluate on-device vs server-side transcription
-- [ ] Integrate with compose and diary text inputs
+Researched and planned 2026-06-06, see `01_docs/voice-input-plan.md` for full research, architecture, and time estimates (~1.5–2 days). Server-side transcription, ElevenLabs Scribe v2 as default provider (best Icelandic), gpt-4o-transcribe as fallback. ChatGPT-style UX: mic button → record → "send" (submit directly) or "insert" (edit first).
+
+- [ ] Step 0: provider spike — test Scribe v2 vs gpt-4o-transcribe on own Icelandic/English/mixed recordings, pick provider
+- [ ] Step 1: backend `POST /transcribe` endpoint (multipart audio → provider → text), optional gpt-4o-mini cleanup pass
+- [ ] Step 2: Expo recording UI with `expo-audio` — mic button on compose and diary inputs, record → send/insert flow
+- [ ] Step 3: cross-platform testing (desktop browsers, iPhone Safari, installed PWA)
+- [ ] Step 4: docs, changelog, version bump, deploy
 
 ---
 
 ## Archive
+
+### User-Defined Categories ✅
+
+- [x] `GET/PUT /categories` backend endpoints, stored in `/var/lib/huxa/categories.json`
+- [x] Event `type` accepts any category key (enum removed)
+- [x] Manage Categories screen in app: add, toggle on/off, reorder, delete
+- [x] Category list cached in AsyncStorage for offline use
+- [x] Per-category structured fields (scale 1–10, number, yes/no, text) with in-app field editor
+- [x] Field values stored in `event.metrics`; shown on compose and history screens
 
 ### Phase 12 — Feature Ideas / Bug Reports ✅
 

@@ -12,6 +12,7 @@ import {
   Alert,
   AppState,
   Image,
+  Switch,
   useColorScheme,
 } from "react-native";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
@@ -22,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.2.17";
+const APP_VERSION = "0.3.0";
 
 const COLOR_PROFILES = {
   dark: {
@@ -93,6 +94,20 @@ function makeStyles(C) {
     categoryGrid: { width: "100%", gap: 8 },
     categoryBtn: { backgroundColor: C.surface, borderRadius: 25, paddingVertical: 14, alignItems: "center" },
     categoryBtnText: { color: C.text, fontSize: 14, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
+    categoryManageRow: { flexDirection: "row", alignItems: "center", backgroundColor: C.surface, borderRadius: 15, padding: 12, width: "100%", marginBottom: 8, gap: 10 },
+    categoryManageLabel: { flex: 1, color: C.text, fontSize: 14, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
+    categoryManageLabelOff: { color: C.muted },
+    categoryMoveBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+    categoryMoveBtnText: { color: C.muted, fontSize: 16 },
+    fieldCountText: { color: C.muted, fontSize: 11, marginTop: 2 },
+    fieldTypePill: { flex: 1, backgroundColor: C.surface, borderRadius: 25, paddingVertical: 8, alignItems: "center" },
+    fieldTypePillActive: { backgroundColor: C.accent },
+    fieldTypePillText: { color: C.muted, fontSize: 12, fontWeight: "600" },
+    fieldTypePillTextActive: { color: C.text },
+    composeFieldBlock: { width: "100%", marginBottom: 12 },
+    metricLine: { color: C.muted, fontSize: 12, marginTop: 2 },
+    manageLink: { marginTop: 20 },
+    manageLinkText: { color: C.muted, fontSize: 13 },
     submitNewSection: { width: "100%", marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: C.input },
     historyTabs: { flexDirection: "row", width: "100%", gap: 8, marginBottom: 12 },
     historyTab: { flex: 1, backgroundColor: C.surface, borderRadius: 25, paddingVertical: 10, alignItems: "center" },
@@ -180,7 +195,29 @@ const DIARY_QUESTIONS = [
 const SCALE_QUESTIONS = DIARY_QUESTIONS.filter(function (q) { return q.type === "scale"; });
 const TEXT_QUESTIONS = DIARY_QUESTIONS.filter(function (q) { return q.type === "text"; });
 const DIARY_STEPS = SCALE_QUESTIONS.concat(TEXT_QUESTIONS);
-const CATEGORIES = ["Event", "Intervention", "Symptom", "Decision", "Thought"];
+const FIELD_TYPES = [
+  { key: "scale", label: "1–10" },
+  { key: "number", label: "Number" },
+  { key: "boolean", label: "Yes/No" },
+  { key: "text", label: "Text" },
+];
+
+function fieldTypeLabel(type) {
+  var t = FIELD_TYPES.find(function (x) { return x.key === type; });
+  return t ? t.label : type;
+}
+
+function slugifyKey(label) {
+  return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+const DEFAULT_CATEGORIES = [
+  { key: "Event", label: "Event", enabled: true },
+  { key: "Intervention", label: "Intervention", enabled: true },
+  { key: "Symptom", label: "Symptom", enabled: true },
+  { key: "Decision", label: "Decision", enabled: true },
+  { key: "Thought", label: "Thought", enabled: true },
+];
 
 function generateUUID() {
   return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, function (c) {
@@ -252,6 +289,13 @@ function AppContent() {
   var _fb5 = useState(false), feedbackShowList = _fb5[0], setFeedbackShowList = _fb5[1];
   var _fb6 = useState(null), feedbackImage = _fb6[0], setFeedbackImage = _fb6[1];
 
+  var _cat1 = useState(DEFAULT_CATEGORIES), categories = _cat1[0], setCategories = _cat1[1];
+  var _cat2 = useState(""), newCategoryName = _cat2[0], setNewCategoryName = _cat2[1];
+  var _cat3 = useState(null), editingCategoryKey = _cat3[0], setEditingCategoryKey = _cat3[1];
+  var _cat4 = useState(""), newFieldLabel = _cat4[0], setNewFieldLabel = _cat4[1];
+  var _cat5 = useState("scale"), newFieldType = _cat5[0], setNewFieldType = _cat5[1];
+  var _cm = useState({}), composeMetrics = _cm[0], setComposeMetrics = _cm[1];
+
   var _cp = useState(DEFAULT_PROFILE), colorProfile = _cp[0], setColorProfile = _cp[1];
   var osScheme = useColorScheme();
   var C = useMemo(function () { return getColors(colorProfile, osScheme); }, [colorProfile, osScheme]);
@@ -262,8 +306,24 @@ function AppContent() {
     if (envToken) { setToken(envToken); }
     else { AsyncStorage.getItem("huxa_token").then(function (t) { if (t) setToken(t); }); }
     AsyncStorage.getItem("huxa_color_profile").then(function (p) { if (p && COLOR_PROFILES[p]) setColorProfile(p); });
+    AsyncStorage.getItem("huxa_categories").then(function (val) {
+      try { var c = JSON.parse(val); if (Array.isArray(c) && c.length > 0) setCategories(c); } catch (e) {}
+    });
     loadQueue();
   }, []);
+
+  useEffect(function () {
+    if (!token) return;
+    fetch(API_BASE + "/categories", { headers: authHeaders() })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (data) {
+        if (Array.isArray(data) && data.length > 0) {
+          setCategories(data);
+          AsyncStorage.setItem("huxa_categories", JSON.stringify(data));
+        }
+      })
+      .catch(function () {}); // offline or error: keep cached/default categories
+  }, [token]);
 
   useEffect(function () {
     SystemUI.setBackgroundColorAsync(C.bg);
@@ -287,6 +347,116 @@ function AppContent() {
   function saveColorProfile(key) {
     setColorProfile(key);
     AsyncStorage.setItem("huxa_color_profile", key);
+  }
+
+  var enabledCategories = categories.filter(function (c) { return c.enabled; });
+
+  function saveCategories(updated) {
+    setCategories(updated);
+    AsyncStorage.setItem("huxa_categories", JSON.stringify(updated));
+    fetch(API_BASE + "/categories", { method: "PUT", headers: authHeaders(), body: JSON.stringify(updated) })
+      .then(function (res) { if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); }); })
+      .catch(function (err) {
+        if (err instanceof TypeError) { showToastMsg("Offline: will sync on next change", "error"); return; }
+        showToastMsg(err.message || "Save failed", "error");
+      });
+  }
+
+  function addCategory() {
+    var name = newCategoryName.trim();
+    if (!name) return;
+    var exists = categories.some(function (c) { return c.key.toLowerCase() === name.toLowerCase(); });
+    if (exists) { showToastMsg("Category already exists", "error"); return; }
+    saveCategories(categories.concat([{ key: name, label: name, enabled: true }]));
+    setNewCategoryName("");
+  }
+
+  function toggleCategory(key) {
+    saveCategories(categories.map(function (c) {
+      return c.key === key ? { key: c.key, label: c.label, enabled: !c.enabled } : c;
+    }));
+  }
+
+  function deleteCategory(key) {
+    confirmAction("Delete Category", 'Delete "' + key + '"? Events already logged with it keep their type.', function () {
+      saveCategories(categories.filter(function (c) { return c.key !== key; }));
+    });
+  }
+
+  function moveCategoryUp(index) {
+    if (index === 0) return;
+    var updated = categories.slice();
+    var tmp = updated[index - 1];
+    updated[index - 1] = updated[index];
+    updated[index] = tmp;
+    saveCategories(updated);
+  }
+
+  function updateCategoryFields(catKey, newFields) {
+    saveCategories(categories.map(function (c) {
+      return c.key === catKey ? Object.assign({}, c, { fields: newFields }) : c;
+    }));
+  }
+
+  function addFieldToCategory() {
+    var label = newFieldLabel.trim();
+    if (!label) return;
+    var key = slugifyKey(label);
+    if (!key) { showToastMsg("Invalid field name", "error"); return; }
+    var cat = categories.find(function (c) { return c.key === editingCategoryKey; });
+    if (!cat) return;
+    var fields = cat.fields || [];
+    if (fields.some(function (f) { return f.key === key; })) { showToastMsg("Field already exists", "error"); return; }
+    updateCategoryFields(editingCategoryKey, fields.concat([{ key: key, label: label, type: newFieldType }]));
+    setNewFieldLabel("");
+  }
+
+  function deleteField(fieldKey) {
+    var cat = categories.find(function (c) { return c.key === editingCategoryKey; });
+    if (!cat) return;
+    confirmAction("Delete Field", "Delete this field? Values already logged stay in their events.", function () {
+      updateCategoryFields(editingCategoryKey, (cat.fields || []).filter(function (f) { return f.key !== fieldKey; }));
+    });
+  }
+
+  function moveFieldUp(index) {
+    if (index === 0) return;
+    var cat = categories.find(function (c) { return c.key === editingCategoryKey; });
+    if (!cat) return;
+    var updated = (cat.fields || []).slice();
+    var tmp = updated[index - 1];
+    updated[index - 1] = updated[index];
+    updated[index] = tmp;
+    updateCategoryFields(editingCategoryKey, updated);
+  }
+
+  function setComposeMetric(key, value) {
+    var updated = Object.assign({}, composeMetrics);
+    if (value === undefined) delete updated[key];
+    else updated[key] = value;
+    setComposeMetrics(updated);
+  }
+
+  function buildMetrics() {
+    var cat = categories.find(function (c) { return c.key === selectedType; });
+    var fields = (cat && cat.fields) || [];
+    var m = {};
+    fields.forEach(function (f) {
+      var v = composeMetrics[f.key];
+      if (v === undefined || v === null || v === "") return;
+      if (f.type === "number") {
+        var n = parseFloat(String(v).replace(",", "."));
+        if (!isNaN(n)) m[f.key] = n;
+        return;
+      }
+      if (f.type === "text") {
+        var t = String(v).trim();
+        if (t) m[f.key] = t;
+        return;
+      }
+      m[f.key] = v;
+    });
+    return m;
   }
 
   function authHeaders() {
@@ -352,13 +522,14 @@ function AppContent() {
 
   function submitEvent(nextType) {
     var text = composeText.trim();
-    if (!text) { showToastMsg("Text is required", "error"); return; }
+    var metrics = buildMetrics();
+    if (!text && Object.keys(metrics).length === 0) { showToastMsg("Add text or fill in a field", "error"); return; }
     if (!token) { setScreen("token"); return; }
 
     var isEditing = !!editingEventId;
     var eventId = isEditing ? editingEventId : generateUUID();
     var clientTs = composeDate.toISOString().replace(/\.\d{3}Z$/, "Z");
-    var event = { id: eventId, client_timestamp: clientTs, type: selectedType, text: text, metrics: {}, meta: { version: 1 } };
+    var event = { id: eventId, client_timestamp: clientTs, type: selectedType, text: text, metrics: metrics, meta: { version: 1 } };
 
     setScreen("submitting");
     var url = isEditing ? API_BASE + "/events/" + eventId : API_BASE + "/events";
@@ -368,7 +539,7 @@ function AppContent() {
         setEditingEventId(null);
         if (nextType) {
           showToastMsg("Logged", "success");
-          setSelectedType(nextType); setComposeText(""); setComposeDate(new Date()); setScreen("compose");
+          setSelectedType(nextType); setComposeText(""); setComposeMetrics({}); setComposeDate(new Date()); setScreen("compose");
         } else {
           showToastMsg(isEditing ? "Updated" : "Logged", "success");
           if (isEditing) { setScreen("history"); doFetchHistory(historyTab, historyDate); }
@@ -402,6 +573,14 @@ function AppContent() {
   }
 
   function editEvent(ev) {
+    var cat = categories.find(function (c) { return c.key === ev.type; });
+    var m = ev.metrics || {};
+    var stateMetrics = {};
+    ((cat && cat.fields) || []).forEach(function (f) {
+      if (m[f.key] === undefined) return;
+      stateMetrics[f.key] = f.type === "number" ? String(m[f.key]) : m[f.key];
+    });
+    setComposeMetrics(stateMetrics);
     setEditingEventId(ev.id); setSelectedType(ev.type); setComposeText(ev.text); setComposeDate(new Date(ev.client_timestamp)); setScreen("compose");
   }
 
@@ -613,18 +792,128 @@ function AppContent() {
         <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <Text style={st.label}>Category</Text>
         <View style={st.categoryGrid}>
-          {CATEGORIES.map(function (cat) {
-            return <TouchableOpacity key={cat} style={st.categoryBtn} onPress={function () { setEditingEventId(null); setSelectedType(cat); setComposeText(""); setComposeDate(new Date()); setScreen("compose"); }}><Text style={st.categoryBtnText}>{cat}</Text></TouchableOpacity>;
+          {enabledCategories.map(function (cat) {
+            return <TouchableOpacity key={cat.key} style={st.categoryBtn} onPress={function () { setEditingEventId(null); setSelectedType(cat.key); setComposeText(""); setComposeMetrics({}); setComposeDate(new Date()); setScreen("compose"); }}><Text style={st.categoryBtnText}>{cat.label}</Text></TouchableOpacity>;
           })}
         </View>
+        <TouchableOpacity style={st.manageLink} onPress={function () { setNewCategoryName(""); setScreen("categories-manage"); }}><Text style={st.manageLinkText}>Manage Categories</Text></TouchableOpacity>
         <View style={{ height: 12 }} />
         <View style={st.halfRow}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
       </SafeAreaView>
     );
   }
 
+  // --- MANAGE CATEGORIES ---
+  if (screen === "categories-manage") {
+    return (
+      <SafeAreaView style={st.container}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
+          <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+          <Text style={st.label}>Manage Categories</Text>
+          <ScrollView style={st.historyScroll} contentContainerStyle={st.historyScrollContent} keyboardShouldPersistTaps="handled">
+            {categories.map(function (cat, index) {
+              return (
+                <View key={cat.key} style={st.categoryManageRow}>
+                  <TouchableOpacity style={st.categoryMoveBtn} onPress={function () { moveCategoryUp(index); }}><Text style={st.categoryMoveBtnText}>{"▲"}</Text></TouchableOpacity>
+                  <TouchableOpacity style={{ flex: 1 }} onPress={function () { setEditingCategoryKey(cat.key); setNewFieldLabel(""); setNewFieldType("scale"); setScreen("category-fields"); }}>
+                    <Text style={[st.categoryManageLabel, { flex: 0 }, !cat.enabled && st.categoryManageLabelOff]}>{cat.label}</Text>
+                    <Text style={st.fieldCountText}>{(cat.fields || []).length + (((cat.fields || []).length === 1) ? " field ›" : " fields ›")}</Text>
+                  </TouchableOpacity>
+                  <Switch value={cat.enabled} onValueChange={function () { toggleCategory(cat.key); }} trackColor={{ false: C.input, true: C.accent }} thumbColor="#fff" />
+                  <TouchableOpacity style={st.categoryMoveBtn} onPress={function () { deleteCategory(cat.key); }}><Text style={[st.categoryMoveBtnText, { color: C.error }]}>{"✕"}</Text></TouchableOpacity>
+                </View>
+              );
+            })}
+            <TextInput style={[st.input, { marginTop: 8 }]} placeholder="New category name" placeholderTextColor={C.muted} value={newCategoryName} onChangeText={setNewCategoryName} onSubmitEditing={addCategory} returnKeyType="done" />
+            <TouchableOpacity style={[st.btnSubmit, { flex: 0 }]} onPress={addCategory}><Text style={st.btnSubmitText}>Add Category</Text></TouchableOpacity>
+          </ScrollView>
+          <View style={[st.halfRow, { marginBottom: 20 }]}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
+        </KeyboardAvoidingView>
+        {renderToast()}
+      </SafeAreaView>
+    );
+  }
+
+  // --- CATEGORY FIELDS ---
+  if (screen === "category-fields") {
+    var editingCat = categories.find(function (c) { return c.key === editingCategoryKey; });
+    var catFields = (editingCat && editingCat.fields) || [];
+    return (
+      <SafeAreaView style={st.container}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
+          <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
+          <Text style={st.label}>{(editingCat ? editingCat.label : "?") + " Fields"}</Text>
+          <ScrollView style={st.historyScroll} contentContainerStyle={st.historyScrollContent} keyboardShouldPersistTaps="handled">
+            {catFields.map(function (f, index) {
+              return (
+                <View key={f.key} style={st.categoryManageRow}>
+                  <TouchableOpacity style={st.categoryMoveBtn} onPress={function () { moveFieldUp(index); }}><Text style={st.categoryMoveBtnText}>{"▲"}</Text></TouchableOpacity>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[st.categoryManageLabel, { flex: 0 }]}>{f.label}</Text>
+                    <Text style={st.fieldCountText}>{fieldTypeLabel(f.type)}</Text>
+                  </View>
+                  <TouchableOpacity style={st.categoryMoveBtn} onPress={function () { deleteField(f.key); }}><Text style={[st.categoryMoveBtnText, { color: C.error }]}>{"✕"}</Text></TouchableOpacity>
+                </View>
+              );
+            })}
+            {catFields.length === 0 && <Text style={[st.emptyText, { marginBottom: 12 }]}>No fields yet. Fields show up as inputs when logging this category, and their values are stored as metrics on the event.</Text>}
+            <TextInput style={[st.input, { marginTop: 8 }]} placeholder="New field name" placeholderTextColor={C.muted} value={newFieldLabel} onChangeText={setNewFieldLabel} onSubmitEditing={addFieldToCategory} returnKeyType="done" />
+            <View style={{ flexDirection: "row", gap: 8, width: "100%", marginBottom: 12 }}>
+              {FIELD_TYPES.map(function (t) {
+                var active = newFieldType === t.key;
+                return <TouchableOpacity key={t.key} style={[st.fieldTypePill, active && st.fieldTypePillActive]} onPress={function () { setNewFieldType(t.key); }}><Text style={[st.fieldTypePillText, active && st.fieldTypePillTextActive]}>{t.label}</Text></TouchableOpacity>;
+              })}
+            </View>
+            <TouchableOpacity style={[st.btnSubmit, { flex: 0 }]} onPress={addFieldToCategory}><Text style={st.btnSubmitText}>Add Field</Text></TouchableOpacity>
+          </ScrollView>
+          <View style={[st.halfRow, { marginBottom: 20 }]}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("categories-manage"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
+        </KeyboardAvoidingView>
+        {renderToast()}
+      </SafeAreaView>
+    );
+  }
+
   // --- COMPOSE ---
   if (screen === "compose") {
+    var composeCat = categories.find(function (c) { return c.key === selectedType; });
+    var composeFields = (composeCat && composeCat.fields) || [];
+    var renderComposeField = function (f) {
+      if (f.type === "scale") {
+        var cur = composeMetrics[f.key];
+        var rows = [];
+        for (var r = 1; r <= 10; r += 5) {
+          rows.push(
+            <View key={r} style={st.scaleRow}>
+              {[0, 1, 2, 3, 4].map(function (i) {
+                var val = r + i;
+                return (
+                  <TouchableOpacity key={val} style={[st.scaleBtn, cur === val && st.scaleBtnSelected]} onPress={function () { setComposeMetric(f.key, cur === val ? undefined : val); }}>
+                    <Text style={[st.scaleBtnText, cur === val && st.scaleBtnTextSelected]}>{val}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        }
+        return <View key={f.key} style={st.composeFieldBlock}><Text style={st.labelSmall}>{f.label}</Text><View style={st.scaleGrid}>{rows}</View></View>;
+      }
+      if (f.type === "boolean") {
+        var bv = composeMetrics[f.key];
+        return (
+          <View key={f.key} style={st.composeFieldBlock}>
+            <Text style={st.labelSmall}>{f.label}</Text>
+            <View style={st.scaleRow}>
+              <TouchableOpacity style={[st.scaleBtn, bv === true && st.scaleBtnSelected]} onPress={function () { setComposeMetric(f.key, bv === true ? undefined : true); }}><Text style={[st.scaleBtnText, bv === true && st.scaleBtnTextSelected]}>Yes</Text></TouchableOpacity>
+              <TouchableOpacity style={[st.scaleBtn, bv === false && st.scaleBtnSelected]} onPress={function () { setComposeMetric(f.key, bv === false ? undefined : false); }}><Text style={[st.scaleBtnText, bv === false && st.scaleBtnTextSelected]}>No</Text></TouchableOpacity>
+            </View>
+          </View>
+        );
+      }
+      if (f.type === "number") {
+        return <View key={f.key} style={st.composeFieldBlock}><Text style={st.labelSmall}>{f.label}</Text><TextInput style={[st.input, { marginBottom: 0 }]} placeholder="0" placeholderTextColor={C.muted} value={composeMetrics[f.key] !== undefined ? String(composeMetrics[f.key]) : ""} onChangeText={function (t) { setComposeMetric(f.key, t); }} keyboardType="decimal-pad" /></View>;
+      }
+      return <View key={f.key} style={st.composeFieldBlock}><Text style={st.labelSmall}>{f.label}</Text><TextInput style={[st.input, { marginBottom: 0 }]} placeholder="..." placeholderTextColor={C.muted} value={composeMetrics[f.key] || ""} onChangeText={function (t) { setComposeMetric(f.key, t); }} /></View>;
+    };
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
@@ -637,7 +926,8 @@ function AppContent() {
               <TouchableOpacity onPress={function () { setComposeDate(shiftDate(composeDate, 1)); }}><Text style={st.dateArrowRight}>{"\u25B6"}</Text></TouchableOpacity>
               {Platform.OS === "web" ? <WebDateInput colors={C} value={composeDate} mode="time" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="time" display="compact" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
             </View>
-            <TextInput style={[st.input, st.textArea]} placeholder="What happened?" placeholderTextColor={C.muted} value={composeText} onChangeText={setComposeText} multiline numberOfLines={3} />
+            {composeFields.map(renderComposeField)}
+            <TextInput style={[st.input, st.textArea]} placeholder={composeFields.length > 0 ? "Any comments?" : "What happened?"} placeholderTextColor={C.muted} value={composeText} onChangeText={setComposeText} multiline numberOfLines={3} />
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (editingEventId) { setEditingEventId(null); setScreen("history"); doFetchHistory(historyTab, historyDate); } else setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () { submitEvent(null); }}><Text style={st.btnSubmitText}>Submit</Text></TouchableOpacity>
@@ -646,7 +936,7 @@ function AppContent() {
               <View style={st.submitNewSection}>
                 <Text style={st.labelSmall}>Submit & log another</Text>
                 <View style={st.categoryGrid}>
-                  {CATEGORIES.map(function (cat) { return <TouchableOpacity key={cat} style={st.categoryBtn} onPress={function () { submitEvent(cat); }}><Text style={st.categoryBtnText}>{cat}</Text></TouchableOpacity>; })}
+                  {enabledCategories.map(function (cat) { return <TouchableOpacity key={cat.key} style={st.categoryBtn} onPress={function () { submitEvent(cat.key); }}><Text style={st.categoryBtnText}>{cat.label}</Text></TouchableOpacity>; })}
                 </View>
               </View>
             )}
@@ -718,7 +1008,18 @@ function AppContent() {
                     <View style={st.badge}><Text style={st.badgeText}>{ev.type}</Text></View>
                     <Text style={st.eventTime}>{formatTime(ev.client_timestamp)}</Text>
                   </View>
-                  <Text style={st.eventText}>{ev.text}</Text>
+                  {ev.text !== "" && <Text style={st.eventText}>{ev.text}</Text>}
+                  {ev.metrics && Object.keys(ev.metrics).length > 0 && (
+                    <View style={{ marginTop: 2 }}>
+                      {Object.keys(ev.metrics).map(function (k) {
+                        var v = ev.metrics[k];
+                        var disp = v === true ? "Yes" : v === false ? "No" : String(v);
+                        var evCat = categories.find(function (c) { return c.key === ev.type; });
+                        var fld = evCat && (evCat.fields || []).find(function (fl) { return fl.key === k; });
+                        return <Text key={k} style={st.metricLine}>{(fld ? fld.label : k) + ": " + disp}</Text>;
+                      })}
+                    </View>
+                  )}
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <TouchableOpacity style={st.editBtn} onPress={function () { editEvent(ev); }}><Text style={st.editBtnText}>Edit</Text></TouchableOpacity>
                     <TouchableOpacity style={[st.editBtn, { borderColor: C.error }]} onPress={function () { deleteEvent(ev); }}><Text style={[st.editBtnText, { color: C.error }]}>Delete</Text></TouchableOpacity>

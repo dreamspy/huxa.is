@@ -34,6 +34,7 @@ export HUXA_AUTH_TOKEN="dev-token"
 export HUXA_EVENTS_FILE="$DATA_DIR/events.jsonl"
 export HUXA_DIARY_FILE="$DATA_DIR/diary.jsonl"
 export HUXA_FEEDBACK_FILE="$DATA_DIR/feedback.jsonl"
+export HUXA_CATEGORIES_FILE="$DATA_DIR/categories.json"
 # Detect LAN IP so iPhone can reach the backend
 LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || echo "127.0.0.1")
 

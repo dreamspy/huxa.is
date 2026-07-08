@@ -2,6 +2,16 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.3.0 — 2026-07-08
+
+- User-defined categories: add, toggle on/off, reorder, and delete categories in the app (Manage Categories screen)
+- New backend endpoints `GET/PUT /categories`, stored in `/var/lib/huxa/categories.json` separate from the event stream
+- Event `type` now accepts any category key (fixed backend enum removed)
+- Per-category structured fields with in-app editor: scale (1–10), number, yes/no, and text
+- Field inputs render on the log screen; values stored in `event.metrics` and shown in history
+- Category list cached locally so offline logging keeps working
+- Nginx `/categories` proxy location; dev server sets `HUXA_CATEGORIES_FILE`
+
 ## v0.2.17 — 2026-03-30
 
 - Update dark color profile inspired by app icon (deeper navy bg, coral accent, cyan success)

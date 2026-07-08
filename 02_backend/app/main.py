@@ -12,6 +12,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from openai import OpenAI
 
 from app.models.event import (
+    Category,
     EventIn, EventStored, QueryIn, QueryOut,
     DiaryIn, DiaryOut, DiarySummaryOut,
     DiaryParseIn, DiaryParseOut,
@@ -30,6 +31,7 @@ app.add_middleware(
 security = HTTPBearer()
 
 EVENTS_FILE = Path(os.environ.get("HUXA_EVENTS_FILE", "/var/lib/huxa/events.jsonl"))
+CATEGORIES_FILE = Path(os.environ.get("HUXA_CATEGORIES_FILE", "/var/lib/huxa/categories.json"))
 DIARY_FILE = Path(os.environ.get("HUXA_DIARY_FILE", "/var/lib/huxa/diary.jsonl"))
 FEEDBACK_FILE = Path(os.environ.get("HUXA_FEEDBACK_FILE", "/var/lib/huxa/feedback.jsonl"))
 ATTACHMENTS_DIR = Path(os.environ.get("HUXA_ATTACHMENTS_DIR", "/var/lib/huxa/attachments"))
@@ -50,6 +52,36 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+DEFAULT_CATEGORIES = [
+    Category(key="Event", label="Event"),
+    Category(key="Intervention", label="Intervention"),
+    Category(key="Symptom", label="Symptom"),
+    Category(key="Decision", label="Decision"),
+    Category(key="Thought", label="Thought"),
+]
+
+
+@app.get("/categories", dependencies=[Depends(verify_token)])
+def list_categories() -> list[Category]:
+    if not CATEGORIES_FILE.exists():
+        return DEFAULT_CATEGORIES
+    return [Category(**c) for c in json.loads(CATEGORIES_FILE.read_text())]
+
+
+@app.put("/categories", dependencies=[Depends(verify_token)])
+def replace_categories(categories: list[Category]) -> list[Category]:
+    keys = [c.key for c in categories]
+    if len(keys) != len(set(keys)):
+        raise HTTPException(status_code=400, detail="Duplicate category keys")
+    for c in categories:
+        field_keys = [f.key for f in c.fields]
+        if len(field_keys) != len(set(field_keys)):
+            raise HTTPException(status_code=400, detail=f"Duplicate field keys in category {c.key}")
+    CATEGORIES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CATEGORIES_FILE.write_text(json.dumps([c.model_dump() for c in categories], indent=2) + "\n")
+    return categories
 
 
 @app.get("/events", dependencies=[Depends(verify_token)])

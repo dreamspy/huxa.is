@@ -15,6 +15,7 @@ The frontend is an Expo app (`08_app/`) that serves iOS, Android, and web from a
 /var/lib/huxa/
     events.jsonl         → Raw event stream
     diary.jsonl          → Structured diary entries
+    categories.json      → User-defined event categories
     derived/             → Computed/aggregated data
 /var/log/huxa/          → Application logs
 /etc/huxa/

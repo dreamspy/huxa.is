@@ -23,6 +23,17 @@ FastAPI application for the HuXa event engine.
 | GET | `/diary/{date}/summary` | Bearer token | AI summary of the day's events |
 | POST | `/diary/parse-text` | Bearer token | Parse free-form text into diary fields (AI) |
 
+### Categories
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/categories` | Bearer token | List categories (defaults if no file yet) |
+| PUT | `/categories` | Bearer token | Replace the category list |
+
+Categories are stored in `categories.json` (default `/var/lib/huxa/categories.json`), separate from the event stream. Each entry is `{ "key", "label", "enabled", "fields" }`; `event.type` stores the key. Disabling hides a category temporarily; deleting removes it. Neither affects events already logged, which store the type string directly.
+
+Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10), `number`, `boolean`, or `text`. Field values submitted with an event go into `event.metrics` keyed by field key. Duplicate category keys or duplicate field keys within a category are rejected with 400.
+
 ### Reports (Feedback / Bug Reports)
 
 | Method | Path | Auth | Description |
@@ -67,6 +78,7 @@ HUXA_AUTH_TOKEN=dev-token
 HUXA_EVENTS_FILE=/tmp/huxa_dev/events.jsonl
 HUXA_DIARY_FILE=/tmp/huxa_dev/diary.jsonl
 HUXA_FEEDBACK_FILE=/tmp/huxa_dev/feedback.jsonl
+HUXA_CATEGORIES_FILE=/tmp/huxa_dev/categories.json
 OPENAI_API_KEY=sk-...
 ```
 
@@ -82,6 +94,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 | `HUXA_EVENTS_FILE` | Path to events.jsonl (default: `/var/lib/huxa/events.jsonl`) |
 | `HUXA_DIARY_FILE` | Path to diary.jsonl (default: `/var/lib/huxa/diary.jsonl`) |
 | `HUXA_FEEDBACK_FILE` | Path to feedback.jsonl (default: `/var/lib/huxa/feedback.jsonl`) |
+| `HUXA_CATEGORIES_FILE` | Path to categories.json (default: `/var/lib/huxa/categories.json`) |
 | `HUXA_ATTACHMENTS_DIR` | Path to attachments directory (default: `/var/lib/huxa/attachments`) |
 | `HUXA_AUTH_TOKEN` | Bearer token for authentication |
 | `OPENAI_API_KEY` | OpenAI API key (required for `/query`, `/diary/{date}/summary`, `/diary/parse-text`) |
