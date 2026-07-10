@@ -23,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.3.1";
 
 const COLOR_PROFILES = {
   dark: {
@@ -145,6 +145,11 @@ function makeStyles(C) {
     toastSuccess: { backgroundColor: C.success },
     toastError: { backgroundColor: C.error },
     toastText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+    confirmOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
+    confirmBox: { backgroundColor: C.surface, borderRadius: 15, padding: 20, width: "100%", maxWidth: 340 },
+    confirmTitle: { color: C.text, fontSize: 16, fontWeight: "600", marginBottom: 8 },
+    confirmMessage: { color: C.muted, fontSize: 14, lineHeight: 20, marginBottom: 20 },
+    confirmRow: { flexDirection: "row", gap: 12 },
     profileRow: { flexDirection: "row", width: "100%", gap: 8, marginBottom: 16 },
     profileBtn: { flex: 1, borderRadius: 25, paddingVertical: 12, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
     profileBtnActive: { borderColor: C.accent },
@@ -236,17 +241,6 @@ function shiftDate(date, days) {
   return d;
 }
 
-function confirmAction(title, message, onConfirm) {
-  if (Platform.OS === "web") {
-    if (window.confirm(title + "\n" + message)) onConfirm();
-  } else {
-    Alert.alert(title, message, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: onConfirm },
-    ]);
-  }
-}
-
 export default function App() {
   return <SafeAreaProvider><AppContent /></SafeAreaProvider>;
 }
@@ -256,6 +250,7 @@ function AppContent() {
   var _b = useState(""), token = _b[0], setToken = _b[1];
   var _c = useState(""), tokenInput = _c[0], setTokenInput = _c[1];
   var _d = useState(null), toast = _d[0], setToast = _d[1];
+  var _cd = useState(null), confirmDialog = _cd[0], setConfirmDialog = _cd[1];
 
   var _e = useState(null), selectedType = _e[0], setSelectedType = _e[1];
   var _f = useState(""), composeText = _f[0], setComposeText = _f[1];
@@ -332,6 +327,18 @@ function AppContent() {
   function showToastMsg(msg, type) {
     setToast({ msg: msg, type: type });
     setTimeout(function () { setToast(null); }, 3000);
+  }
+
+  function confirmAction(title, message, onConfirm) {
+    if (Platform.OS === "web") {
+      // window.confirm doesn't work in the Tauri desktop webview, so use an in-app modal instead.
+      setConfirmDialog({ title: title, message: message, onConfirm: onConfirm });
+    } else {
+      Alert.alert(title, message, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: onConfirm },
+      ]);
+    }
   }
 
   function saveTokenFn() {
@@ -679,6 +686,22 @@ function AppContent() {
     return <View style={[st.toast, toast.type === "success" ? st.toastSuccess : st.toastError]}><Text style={st.toastText}>{toast.msg}</Text></View>;
   }
 
+  function renderConfirm() {
+    if (!confirmDialog) return null;
+    return (
+      <View style={st.confirmOverlay}>
+        <View style={st.confirmBox}>
+          <Text style={st.confirmTitle}>{confirmDialog.title}</Text>
+          <Text style={st.confirmMessage}>{confirmDialog.message}</Text>
+          <View style={st.confirmRow}>
+            <TouchableOpacity style={st.btnBack} onPress={function () { setConfirmDialog(null); }}><Text style={st.btnBackText}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={[st.btnSubmit, { backgroundColor: C.error }]} onPress={function () { var onConfirm = confirmDialog.onConfirm; setConfirmDialog(null); onConfirm(); }}><Text style={st.btnSubmitText}>Delete</Text></TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   // --- IDLE ---
   if (screen === "idle") {
     return (
@@ -695,6 +718,7 @@ function AppContent() {
         <TouchableOpacity style={st.settingsBtn} onPress={function () { setTokenInput(token); setScreen("token"); }}><Text style={st.settingsBtnText}>Settings</Text></TouchableOpacity>
         <Text style={st.version}>v{APP_VERSION}</Text>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }
@@ -743,6 +767,7 @@ function AppContent() {
           <TouchableOpacity style={st.btnSubmit} onPress={function () { processQueueFn(); showToastMsg("Syncing...", "success"); }}><Text style={st.btnSubmitText}>Sync All</Text></TouchableOpacity>
         </View>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }
@@ -830,6 +855,7 @@ function AppContent() {
           <View style={[st.halfRow, { marginBottom: 20 }]}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
         </KeyboardAvoidingView>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }
@@ -869,6 +895,7 @@ function AppContent() {
           <View style={[st.halfRow, { marginBottom: 20 }]}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("categories-manage"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
         </KeyboardAvoidingView>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }
@@ -943,6 +970,7 @@ function AppContent() {
           </ScrollView>
         </KeyboardAvoidingView>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }
@@ -1043,6 +1071,7 @@ function AppContent() {
         </ScrollView>
         <View style={st.halfRow}><TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity></View>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }
@@ -1089,6 +1118,7 @@ function AppContent() {
           )}
         </ScrollView>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }
@@ -1378,6 +1408,7 @@ function AppContent() {
           </ScrollView>
         </KeyboardAvoidingView>
         {renderToast()}
+        {renderConfirm()}
       </SafeAreaView>
     );
   }

@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.3.1 — 2026-07-10
+
+- Fix delete confirmations (field, category, event, diary, queue item) silently doing nothing in the Tauri desktop app — `window.confirm` isn't implemented in Tauri's embedded webview, so `confirmAction` now shows a custom in-app modal on web/desktop instead
+
 ## v0.3.0 — 2026-07-08
 
 - User-defined categories: add, toggle on/off, reorder, and delete categories in the app (Manage Categories screen)
