@@ -23,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.3.1";
+const APP_VERSION = "0.3.2";
 
 const COLOR_PROFILES = {
   dark: {

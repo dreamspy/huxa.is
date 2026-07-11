@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.3.2 — 2026-07-11
+
+- Fix `/diary/parse-text` prompt dropping information from quick-entry text: instruct the model not to summarize/shorten, to reuse content across overlapping fields, and to append unmatched text to the closest field instead of discarding it
+
 ## v0.3.1 — 2026-07-10
 
 - Fix delete confirmations (field, category, event, diary, queue item) silently doing nothing in the Tauri desktop app — `window.confirm` isn't implemented in Tauri's embedded webview, so `confirmAction` now shows a custom in-app modal on web/desktop instead
