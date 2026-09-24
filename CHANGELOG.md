@@ -2,6 +2,11 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.3.3 — 2026-09-24
+
+- Fix AI failures (e.g. OpenAI out of credits) surfacing as an unhandled 500 without CORS headers, which showed as "Load failed" in the desktop app and "HTTP 500" on the PWA. OpenAI errors now return a 502 with a readable `detail` message (Ask HuXa, diary quick-entry parsing, diary summary)
+- Ask HuXa and diary quick-entry now display the server's error message instead of just the HTTP status
+
 ## v0.3.2 — 2026-07-11
 
 - Fix `/diary/parse-text` prompt dropping information from quick-entry text: instruct the model not to summarize/shorten, to reuse content across overlapping fields, and to append unmatched text to the closest field instead of discarding it

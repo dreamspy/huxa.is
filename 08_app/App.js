@@ -23,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.3.2";
+const APP_VERSION = "0.3.3";
 
 const COLOR_PROFILES = {
   dark: {
@@ -657,7 +657,7 @@ function AppContent() {
     setQueryLoading(true);
     setQueryAnswer("");
     fetch(API_BASE + "/query", { method: "POST", headers: authHeaders(), body: JSON.stringify({ question: q }) })
-      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (res) { if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); }); return res.json(); })
       .then(function (data) { setQueryAnswer(data.answer); setQueryLoading(false); })
       .catch(function (err) { setQueryAnswer("Error: " + (err.message || "Network error")); setQueryLoading(false); });
   }
@@ -1209,7 +1209,7 @@ function AppContent() {
                   headers: authHeaders(),
                   body: JSON.stringify({ raw_text: bulkText, questions: questions }),
                 }).then(function (res) {
-                  if (!res.ok) throw new Error("HTTP " + res.status);
+                  if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); });
                   return res.json();
                 }).then(function (data) {
                   var updated = Object.assign({}, diaryAnswers);

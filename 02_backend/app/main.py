@@ -6,9 +6,10 @@ from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+import openai
 from openai import OpenAI
 
 from app.models.event import (
@@ -47,6 +48,17 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
+
+
+@app.exception_handler(openai.APIError)
+def openai_error(request, exc: openai.APIError):
+    # Return a readable error (with CORS headers) instead of an unhandled 500
+    code = getattr(exc, "code", None)
+    if code in ("insufficient_quota", "credit_balance_exhausted"):
+        detail = "AI unavailable: OpenAI account is out of credits"
+    else:
+        detail = f"AI unavailable: {exc.__class__.__name__}"
+    return JSONResponse(status_code=502, content={"detail": detail})
 
 
 @app.get("/health")
