@@ -399,7 +399,7 @@ function AppContent() {
 
   function toggleCategory(key) {
     saveCategories(categories.map(function (c) {
-      return c.key === key ? { key: c.key, label: c.label, enabled: !c.enabled } : c;
+      return c.key === key ? Object.assign({}, c, { enabled: !c.enabled }) : c;
     }));
   }
 
