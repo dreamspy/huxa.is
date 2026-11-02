@@ -45,7 +45,7 @@ Raw events are never modified. If correction is needed, a new corrective event i
   "id": "uuid-v4",
   "client_timestamp": "2026-02-14T10:30:00Z",
   "received_at": "2026-02-14T10:30:01Z",
-  "type": "category key (user-defined; defaults: Event, Intervention, Symptom, Decision, Thought)",
+  "type": "category key (user-defined; defaults: Event, Intervention, Symptom, Decision, Thought, Sleep)",
   "text": "Took 200mg magnesium glycinate",
   "metrics": {},
   "meta": { "version": 1 }
@@ -57,6 +57,8 @@ Raw events are never modified. If correction is needed, a new corrective event i
 The `type` field holds a category key. Categories are user-defined and managed in the app (add, toggle on/off, reorder, delete) via `GET/PUT /categories`. They live in `/var/lib/huxa/categories.json`, separate from the event stream. Toggling a category off hides it temporarily; deleting removes it from the list. Neither affects historical events, which store the type string directly.
 
 Each category can define structured **fields** (types: `scale` 1–10, `number`, `boolean`, `text`), also managed in the app. When logging, the fields render as inputs and their values are stored in the event's `metrics` object, e.g. `{ "sleep_hours": 7.5, "sleep_score": 6, "mag_glycine": true }`.
+
+The default Sleep category is the sleep log. It has two fields, `sleep_score` (number, the Apple Watch score) and `sleep_quality` (scale 1–10); the comment goes in the event `text`. Defaults only apply when `categories.json` does not exist yet, so an existing install adds the fields under Manage Categories › Sleep.
 
 ## Architecture
 

@@ -232,6 +232,10 @@ const DEFAULT_CATEGORIES = [
   { key: "Symptom", label: "Symptom", enabled: true },
   { key: "Decision", label: "Decision", enabled: true },
   { key: "Thought", label: "Thought", enabled: true },
+  { key: "Sleep", label: "Sleep", enabled: true, fields: [
+    { key: "sleep_score", label: "Sleep score (Apple Watch)", type: "number" },
+    { key: "sleep_quality", label: "Sleep quality", type: "scale" },
+  ] },
 ];
 
 function generateUUID() {
