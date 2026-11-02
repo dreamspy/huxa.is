@@ -23,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.3.3";
+const APP_VERSION = "0.4.0";
 
 const COLOR_PROFILES = {
   dark: {
@@ -67,6 +67,12 @@ function getColors(profileKey, osScheme) {
   var resolved = resolveProfile(profileKey, osScheme);
   return COLOR_PROFILES[resolved] || COLOR_PROFILES.dark;
 }
+
+var QUERY_EFFORTS = [
+  { key: "low", label: "Low", hint: "About 1s. Summaries and quick lookups. Unreliable for counting." },
+  { key: "mid", label: "Mid", hint: "About 4s. Counting and comparisons, right most of the time." },
+  { key: "high", label: "High", hint: "10-20s. When the answer has to be exact, or for patterns across months." },
+];
 
 function makeStyles(C) {
   return StyleSheet.create({
@@ -278,6 +284,7 @@ function AppContent() {
   var _w = useState(""), queryText = _w[0], setQueryText = _w[1];
   var _x = useState(""), queryAnswer = _x[0], setQueryAnswer = _x[1];
   var _y = useState(false), queryLoading = _y[0], setQueryLoading = _y[1];
+  var _qe = useState("mid"), queryEffort = _qe[0], setQueryEffort = _qe[1];
 
   var _fb1 = useState("feature"), feedbackType = _fb1[0], setFeedbackType = _fb1[1];
   var _fb2 = useState(""), feedbackText = _fb2[0], setFeedbackText = _fb2[1];
@@ -303,6 +310,7 @@ function AppContent() {
     if (envToken) { setToken(envToken); }
     else { AsyncStorage.getItem("huxa_token").then(function (t) { if (t) setToken(t); }); }
     AsyncStorage.getItem("huxa_color_profile").then(function (p) { if (p && COLOR_PROFILES[p]) setColorProfile(p); });
+    AsyncStorage.getItem("huxa_query_effort").then(function (e) { if (QUERY_EFFORTS.some(function (o) { return o.key === e; })) setQueryEffort(e); });
     AsyncStorage.getItem("huxa_categories").then(function (val) {
       try { var c = JSON.parse(val); if (Array.isArray(c) && c.length > 0) setCategories(c); } catch (e) {}
     });
@@ -360,6 +368,11 @@ function AppContent() {
   function saveColorProfile(key) {
     setColorProfile(key);
     AsyncStorage.setItem("huxa_color_profile", key);
+  }
+
+  function saveQueryEffort(key) {
+    setQueryEffort(key);
+    AsyncStorage.setItem("huxa_query_effort", key);
   }
 
   var enabledCategories = categories.filter(function (c) { return c.enabled; });
@@ -670,7 +683,7 @@ function AppContent() {
     if (needsToken()) { setScreen("token"); return; }
     setQueryLoading(true);
     setQueryAnswer("");
-    fetch(API_BASE + "/query", { method: "POST", headers: authHeaders(), body: JSON.stringify({ question: q }) })
+    fetch(API_BASE + "/query", { method: "POST", headers: authHeaders(), body: JSON.stringify({ question: q, effort: queryEffort }) })
       .then(function (res) { if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); }); return res.json(); })
       .then(function (data) { setQueryAnswer(data.answer); setQueryLoading(false); })
       .catch(function (err) { setQueryAnswer("Error: " + (err.message || "Network error")); setQueryLoading(false); });
@@ -1013,10 +1026,18 @@ function AppContent() {
               onSubmitEditing={submitQuery}
             />
             <View style={st.row}>
+              {QUERY_EFFORTS.map(function (e) {
+                return (
+                  <TouchableOpacity key={e.key} style={[st.btnSubmit, queryEffort === e.key ? {} : { backgroundColor: C.surface }]} onPress={function () { saveQueryEffort(e.key); }}><Text style={st.btnSubmitText}>{e.label}</Text></TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={[st.emptyText, { marginTop: 6, marginBottom: 12 }]}>{QUERY_EFFORTS.filter(function (e) { return e.key === queryEffort; })[0].hint}</Text>
+            <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("idle"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={submitQuery}><Text style={st.btnSubmitText}>Ask</Text></TouchableOpacity>
             </View>
-            {queryLoading && <Text style={[st.emptyText, { marginTop: 20 }]}>Thinking...</Text>}
+            {queryLoading && <Text style={[st.emptyText, { marginTop: 20 }]}>{queryEffort === "high" ? "Thinking hard, this can take 10-30 seconds..." : "Thinking..."}</Text>}
             {!queryLoading && queryAnswer !== "" && (
               <View style={[st.summaryBox, { marginTop: 20 }]}><Text style={st.summaryText}>{queryAnswer}</Text></View>
             )}

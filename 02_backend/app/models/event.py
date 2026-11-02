@@ -35,6 +35,7 @@ class EventStored(EventIn):
 
 class QueryIn(BaseModel):
     question: str
+    effort: Literal["low", "mid", "high"] = "mid"
 
 
 class QueryOut(BaseModel):

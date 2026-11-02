@@ -48,8 +48,26 @@ Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10)
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/health` | No | Health check; also reports `auth_required` |
-| POST | `/query` | Bearer token | Ask a question about events (OpenAI) |
+| POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid` |
 | GET | `/attachments/{filename}` | No | Serve uploaded attachment images |
+
+### Query effort tiers
+
+`POST /query` sends the whole event log and diary to OpenAI. The `effort` field picks the model;
+the mapping lives in `QUERY_MODELS` in `app/main.py`. Measured on the real log (~30K prompt tokens,
+100 runs each of a counting question, 2026-11-02):
+
+| Effort | Model | Use for | Correct | Median | p90 | Cost per ask |
+|---|---|---|---|---|---|---|
+| `low` | gpt-4o-mini | Summaries, quick lookups, finding an entry | ~20% | 1 s | 1 s | $0.005 |
+| `mid` (default) | gpt-5-mini, `reasoning_effort=low` | Counting, comparisons, careful reads of the log | 96% | 3 s | 5 s | $0.008 |
+| `high` | gpt-5-nano, `reasoning_effort=medium` | Exact numbers, patterns across months | 99% | 12 s | 19 s | $0.002 |
+
+Non-reasoning models guess at counts; `low` is only useful for summaries and quick lookups.
+The system prompt tells the model that counting questions refer to event entries, not diary
+mentions: free-text diary mentions were the main cause of off-by-one answers, and asking the model
+to count those as well tripled latency without improving accuracy. Re-run the benchmark before
+changing the tier models or the prompt.
 
 ## Local Development
 

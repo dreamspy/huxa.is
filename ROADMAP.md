@@ -159,7 +159,8 @@ Researched and planned 2026-06-06, see `01_docs/voice-input-plan.md` for full re
 ### Phase 4 — Frontend & Features ✅
 
 - [x] PWA frontend → replaced by Expo (iOS, Android, web)
-- [x] AI query endpoint (GPT-4o-mini)
+- [x] AI query endpoint (OpenAI)
+- [x] Query effort tiers low/mid/high (gpt-4o-mini / gpt-5-mini / gpt-5-nano), selector in app, default mid
 - [x] Structured diary with step-by-step wizard and quick entry
 - [x] History view with editing and deletion
 - [x] Logging UX: date override, submit & log another

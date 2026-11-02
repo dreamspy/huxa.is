@@ -2,6 +2,15 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.0 — 2026-11-02
+
+- Ask HuXa gets a Low / Mid / High effort selector (remembered on the device, default Mid). `POST /query` takes an `effort` field: `low` keeps gpt-4o-mini (about 1 s, guesses at counts), `mid` uses gpt-5-mini with low reasoning (about 3-5 s, 96/100 on a counting test), `high` uses gpt-5-nano with medium reasoning (10-20 s, 99/100). Model map in `QUERY_MODELS` in `main.py`, measurements in `02_backend/README.md`
+- Ask HuXa system prompt now tells the model that counting questions refer to event entries, not diary mentions. Free-text diary mentions were the main cause of off-by-one counts
+- Backend requires `openai>=1.60.0` for the `reasoning_effort` parameter
+- Local dev runs without an auth token: with `HUXA_AUTH_TOKEN` empty the backend accepts requests with no Authorization header and logs a warning at startup. `GET /health` reports `auth_required` and the app skips the token screen when it is false. `dev_server.sh` no longer sets `dev-token`
+- Fix View All Feedback failing with HTTP 403 when no token was set: it now asks for a token like the other screens
+- Worktree setup documented in `CLAUDE.md`
+
 ## v0.3.3 — 2026-09-24
 
 - Fix AI failures (e.g. OpenAI out of credits) surfacing as an unhandled 500 without CORS headers, which showed as "Load failed" in the desktop app and "HTTP 500" on the PWA. OpenAI errors now return a 502 with a readable `detail` message (Ask HuXa, diary quick-entry parsing, diary summary)

@@ -40,6 +40,16 @@ ATTACHMENTS_DIR = Path(os.environ.get("HUXA_ATTACHMENTS_DIR", "/var/lib/huxa/att
 AUTH_TOKEN = os.environ.get("HUXA_AUTH_TOKEN", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
+# /query model per effort tier, see 02_backend/README.md for measured speed and accuracy
+QUERY_MODELS = {
+    # ~1s, no reasoning. Summaries, "what did I log yesterday", finding an entry. Guesses at counts.
+    "low": {"model": "gpt-4o-mini"},
+    # ~3-5s. Counting, comparisons, anything that needs the whole log read carefully. 96/100 in testing.
+    "mid": {"model": "gpt-5-mini", "reasoning_effort": "low"},
+    # ~10-20s. When the number has to be exact, or for patterns across months. 99/100 in testing.
+    "high": {"model": "gpt-5-nano", "reasoning_effort": "medium"},
+}
+
 
 if not AUTH_TOKEN:
     logging.getLogger("uvicorn.error").warning("HUXA_AUTH_TOKEN is empty: authentication is disabled")
@@ -228,7 +238,7 @@ def query_events(q: QueryIn) -> QueryOut:
 
     client = OpenAI(api_key=OPENAI_API_KEY)
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        **QUERY_MODELS[q.effort],
         messages=[
             {
                 "role": "system",
@@ -237,6 +247,9 @@ def query_events(q: QueryIn) -> QueryOut:
                     "1. Events — each line is JSON with fields: id, client_timestamp, received_at, type, text, metrics, meta\n"
                     "2. Diary entries — each line is JSON with fields: id, date, answers (object with keys like "
                     "sleep, headaches, energy, gut, physical, hip_pain, mental, life, gratitude, activity), saved_at, meta\n\n"
+                    "Events are the structured log: one line is one logged entry. Diary entries are free text. "
+                    "When asked how many times something was logged, count event entries only; "
+                    "do not count diary mentions as logged entries.\n\n"
                     "Answer the user's question based on this data. Be concise and helpful."
                 ),
             },
