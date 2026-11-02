@@ -173,6 +173,7 @@ server {
     location /events { proxy_pass http://127.0.0.1:8000; ... }
     location /diary  { proxy_pass http://127.0.0.1:8000; ... }
     location /query  { proxy_pass http://127.0.0.1:8000; ... }
+    location /transcribe { client_max_body_size 25m; proxy_pass http://127.0.0.1:8000; ... }
     location /health { proxy_pass http://127.0.0.1:8000; ... }
 }
 ```

@@ -2,6 +2,13 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.0 — 2026-11-02
+
+- Dictation in text fields (compose, diary text answers, Ask HuXa): a mic button records in the browser, shows a live level graph with cancel and stop, and appends the transcript to the field. After 5 minutes it asks "Still talking?" and stops and transcribes if there is no answer within 10 s. Web only for now
+- Quick log on the home screen: dictate, the transcript is saved as an Event straight away and shown with an Edit button
+- New `POST /transcribe` endpoint (bearer token, multipart audio up to 25 MB) that transcribes with OpenAI `gpt-4o-transcribe`. Nginx routes `/transcribe` with a 25 MB body limit, previews too
+- Delete button on the edit event screen
+
 ## v0.4.9 — 2026-11-02
 
 - Fix toggling a category on or off dropping its structured fields
