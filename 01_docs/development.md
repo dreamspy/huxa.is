@@ -20,7 +20,7 @@ The dev server script starts both the FastAPI backend and Expo from a single com
 This gives you:
 - **Backend** on `http://<LAN_IP>:8000` (bound to `0.0.0.0`) with isolated data in `/tmp/huxa_dev/`
 - **Expo** in interactive mode — press `i` to open iOS simulator, `w` for web
-- Auth token set to `dev-token` automatically
+- Auth disabled: no bearer token needed, the app goes straight to the home screen
 - App configured to talk to local backend via your Mac's LAN IP (not production)
 - All clients (browser, simulator, iPhone) connect to the same local backend
 
@@ -59,7 +59,7 @@ API keys (e.g. `OPENAI_API_KEY`) are loaded from `02_backend/.env`.
 2. Uvicorn `--reload` picks up changes automatically
 3. Test via the frontend or directly with curl:
    ```bash
-   curl -H "Authorization: Bearer dev-token" http://localhost:8000/events?date=2026-03-23
+   curl "http://localhost:8000/events?date=2026-03-23"   # no token needed in dev
    ```
 
 ### Building for Web

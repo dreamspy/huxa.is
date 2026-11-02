@@ -106,6 +106,8 @@ Nginx terminates TLS locally and proxies to Uvicorn. Cloudflare sits in front fo
 
 Phase 1 uses simple bearer token authentication. This is intentionally minimal — the system is single-user and sits behind Cloudflare.
 
+Locally, `dev_server.sh` runs the backend with an empty `HUXA_AUTH_TOKEN`, which disables auth: requests need no token and the app skips the token screen. `GET /health` reports `auth_required` so clients can tell which mode the server is in.
+
 ## AI Roadmap
 
 1. **Phase 1 (current):** Structured event capture + Syncthing sync for local AI analysis

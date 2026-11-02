@@ -156,6 +156,7 @@ function makeStyles(C) {
     profileBtnText: { fontSize: 13, fontWeight: "600" },
     profileSwatch: { width: 24, height: 24, borderRadius: 12, marginBottom: 4, borderWidth: 1, borderColor: C.muted },
     settingsSectionLabel: { fontSize: 12, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 20, alignSelf: "flex-start" },
+    settingsHint: { fontSize: 12, color: C.muted, alignSelf: "flex-start", marginTop: 6 },
   });
 }
 
@@ -249,6 +250,7 @@ function AppContent() {
   var _a = useState("idle"), screen = _a[0], setScreen = _a[1];
   var _b = useState(""), token = _b[0], setToken = _b[1];
   var _c = useState(""), tokenInput = _c[0], setTokenInput = _c[1];
+  var _ar = useState(true), authRequired = _ar[0], setAuthRequired = _ar[1];
   var _d = useState(null), toast = _d[0], setToast = _d[1];
   var _cd = useState(null), confirmDialog = _cd[0], setConfirmDialog = _cd[1];
 
@@ -305,10 +307,14 @@ function AppContent() {
       try { var c = JSON.parse(val); if (Array.isArray(c) && c.length > 0) setCategories(c); } catch (e) {}
     });
     loadQueue();
+    fetch(API_BASE + "/health")
+      .then(function (res) { return res.json(); })
+      .then(function (data) { setAuthRequired(data.auth_required !== false); })
+      .catch(function () {}); // backend unreachable: keep asking for a token
   }, []);
 
   useEffect(function () {
-    if (!token) return;
+    if (needsToken()) return;
     fetch(API_BASE + "/categories", { headers: authHeaders() })
       .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
       .then(function (data) {
@@ -318,7 +324,7 @@ function AppContent() {
         }
       })
       .catch(function () {}); // offline or error: keep cached/default categories
-  }, [token]);
+  }, [token, authRequired]);
 
   useEffect(function () {
     SystemUI.setBackgroundColorAsync(C.bg);
@@ -466,8 +472,16 @@ function AppContent() {
     return m;
   }
 
+  function needsToken() {
+    return authRequired && !token;
+  }
+
+  function bearerHeader() {
+    return token ? { Authorization: "Bearer " + token } : {};
+  }
+
   function authHeaders() {
-    return { "Content-Type": "application/json", Authorization: "Bearer " + token };
+    return Object.assign({ "Content-Type": "application/json" }, bearerHeader());
   }
 
   function loadQueue() {
@@ -531,7 +545,7 @@ function AppContent() {
     var text = composeText.trim();
     var metrics = buildMetrics();
     if (!text && Object.keys(metrics).length === 0) { showToastMsg("Add text or fill in a field", "error"); return; }
-    if (!token) { setScreen("token"); return; }
+    if (needsToken()) { setScreen("token"); return; }
 
     var isEditing = !!editingEventId;
     var eventId = isEditing ? editingEventId : generateUUID();
@@ -575,7 +589,7 @@ function AppContent() {
   }
 
   function openHistory() {
-    if (!token) { setScreen("token"); return; }
+    if (needsToken()) { setScreen("token"); return; }
     var d = todayStr(); setHistoryDate(d); setHistoryTab("events"); setScreen("history"); doFetchHistory("events", d);
   }
 
@@ -653,7 +667,7 @@ function AppContent() {
   function submitQuery() {
     var q = queryText.trim();
     if (!q) return;
-    if (!token) { setScreen("token"); return; }
+    if (needsToken()) { setScreen("token"); return; }
     setQueryLoading(true);
     setQueryAnswer("");
     fetch(API_BASE + "/query", { method: "POST", headers: authHeaders(), body: JSON.stringify({ question: q }) })
@@ -709,10 +723,10 @@ function AppContent() {
         <StatusBar barStyle={C.statusBar} />
         <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <View style={st.idleButtons}>
-          <TouchableOpacity style={st.btn} onPress={function () { if (!token) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
-          <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (!token) setScreen("token"); else startDiary(todayStr()); }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
+          <TouchableOpacity style={st.btn} onPress={function () { if (needsToken()) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
+          <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else startDiary(todayStr()); }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={openHistory}><Text style={st.btnText}>History</Text></TouchableOpacity>
-          <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (!token) setScreen("token"); else { setQueryText(""); setQueryAnswer(""); setScreen("query"); } }}><Text style={st.btnText}>Ask HuXa</Text></TouchableOpacity>
+          <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else { setQueryText(""); setQueryAnswer(""); setScreen("query"); } }}><Text style={st.btnText}>Ask HuXa</Text></TouchableOpacity>
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
         </View>
         <TouchableOpacity style={st.settingsBtn} onPress={function () { setTokenInput(token); setScreen("token"); }}><Text style={st.settingsBtnText}>Settings</Text></TouchableOpacity>
@@ -780,6 +794,7 @@ function AppContent() {
         <Text style={st.label}>Settings</Text>
         <Text style={st.settingsSectionLabel}>API Token</Text>
         <TextInput style={st.input} placeholder="Bearer token" placeholderTextColor={C.muted} value={tokenInput} onChangeText={setTokenInput} autoCapitalize="none" autoCorrect={false} onSubmitEditing={saveTokenFn} returnKeyType="done" />
+        {!authRequired && <Text style={st.settingsHint}>Not needed: this server runs without authentication.</Text>}
         <Text style={st.settingsSectionLabel}>Color Profile</Text>
         <View style={st.profileRow}>
           {PROFILE_KEYS.map(function (key) {
@@ -1301,7 +1316,7 @@ function AppContent() {
             formData.append("file", blob, filename);
             return fetch(API_BASE + "/reports/" + reportId + "/attachment", {
               method: "POST",
-              headers: { Authorization: "Bearer " + token },
+              headers: bearerHeader(),
               body: formData,
             });
           });
@@ -1309,7 +1324,7 @@ function AppContent() {
       formData.append("file", { uri: uri, name: filename, type: mimeType });
       return fetch(API_BASE + "/reports/" + reportId + "/attachment", {
         method: "POST",
-        headers: { Authorization: "Bearer " + token },
+        headers: bearerHeader(),
         body: formData,
       });
     };
@@ -1349,7 +1364,7 @@ function AppContent() {
             <View style={[st.row, { marginTop: 12 }]}>
               <TouchableOpacity style={st.btnBack} onPress={function () { setScreen(feedbackPrevScreen || "idle"); setFeedbackImage(null); }}><Text style={st.btnBackText}>Cancel</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () {
-                if (!token) { showToastMsg("Set your token in Settings first", "error"); return; }
+                if (needsToken()) { showToastMsg("Set your token in Settings first", "error"); return; }
                 if (!feedbackText.trim()) { showToastMsg("Please describe your feedback", "error"); return; }
                 setScreen("submitting");
                 fetch(API_BASE + "/reports", {

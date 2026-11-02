@@ -47,7 +47,7 @@ Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10)
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/health` | No | Health check |
+| GET | `/health` | No | Health check; also reports `auth_required` |
 | POST | `/query` | Bearer token | Ask a question about events (OpenAI) |
 | GET | `/attachments/{filename}` | No | Serve uploaded attachment images |
 
@@ -74,7 +74,8 @@ pip install -r requirements.txt
 Create a `.env` file (gitignored):
 
 ```bash
-HUXA_AUTH_TOKEN=dev-token
+# Empty disables auth (local dev). Set a value to require a bearer token.
+HUXA_AUTH_TOKEN=
 HUXA_EVENTS_FILE=/tmp/huxa_dev/events.jsonl
 HUXA_DIARY_FILE=/tmp/huxa_dev/diary.jsonl
 HUXA_FEEDBACK_FILE=/tmp/huxa_dev/feedback.jsonl
@@ -96,6 +97,6 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 | `HUXA_FEEDBACK_FILE` | Path to feedback.jsonl (default: `/var/lib/huxa/feedback.jsonl`) |
 | `HUXA_CATEGORIES_FILE` | Path to categories.json (default: `/var/lib/huxa/categories.json`) |
 | `HUXA_ATTACHMENTS_DIR` | Path to attachments directory (default: `/var/lib/huxa/attachments`) |
-| `HUXA_AUTH_TOKEN` | Bearer token for authentication |
+| `HUXA_AUTH_TOKEN` | Bearer token for authentication. Empty disables auth (local dev only): `/health` then reports `auth_required: false` and the app skips the token screen |
 | `OPENAI_API_KEY` | OpenAI API key (required for `/query`, `/diary/{date}/summary`, `/diary/parse-text`) |
 | `HUXA_CONFIG` | Path to config.json (optional) |

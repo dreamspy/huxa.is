@@ -44,7 +44,7 @@ This:
 - Runs the backend on `http://localhost:8000` with isolated dev data in `/tmp/huxa_dev/`
 - Runs Expo in the foreground (interactive — press `i` for iOS simulator, `w` for web)
 - Auto-configures the app to use the local backend via `EXPO_PUBLIC_API_BASE`
-- Sets auth token to `dev-token` via `EXPO_PUBLIC_AUTH_TOKEN`
+- Disables auth (empty `HUXA_AUTH_TOKEN`), so the app needs no token
 
 API keys (e.g. `OPENAI_API_KEY`) are loaded from `02_backend/.env`.
 
