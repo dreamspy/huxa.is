@@ -73,3 +73,25 @@
 | `08_app/dist/` | Expo web build (served by Nginx in production) |
 | `fabfile.py` | Fabric deploy commands |
 | `CHANGELOG.md` | Version history and release notes |
+
+## Worktree
+
+Base branch: main
+Bootstrap a fresh worktree (run from inside it; `../huxa.is` is the main checkout):
+    cp -Rc ../huxa.is/08_app/node_modules 08_app/node_modules
+    ln -s ../../huxa.is/02_backend/venv 02_backend/venv
+`cp -Rc` is an instant APFS clone. Copy rather than symlink: Metro only watches the project root, and a symlinked `node_modules` resolves to files outside it.
+Dev server (the main checkout uses 8000 for the backend and 8081 for Expo web, via `05_scripts/dev_server.sh`):
+    HUXA_AUTH_TOKEN=dev-token HUXA_EVENTS_FILE=<data dir>/events.jsonl HUXA_DIARY_FILE=<data dir>/diary.jsonl HUXA_FEEDBACK_FILE=<data dir>/feedback.jsonl HUXA_CATEGORIES_FILE=<data dir>/categories.json HUXA_ATTACHMENTS_DIR=<data dir>/attachments 02_backend/venv/bin/uvicorn app.main:app --app-dir 02_backend --port <backend port>
+    cd 08_app && CI=1 EXPO_PUBLIC_API_BASE=http://localhost:<backend port> npx expo start --web --port <web port>
+`CI=1` stops Expo from opening a browser; it also turns off Metro file watching, so restart Expo after editing `App.js`.
+Use a data dir of your own, not `/tmp/huxa_dev` (the main dev server writes there). The backend's CORS list only allows `http://localhost:8081`, so an Expo server on another port needs the backend started through a wrapper that adds its origin:
+    from app.main import app
+    from fastapi.middleware.cors import CORSMiddleware
+    import uvicorn
+    app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:<web port>"], allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type"])
+    uvicorn.run(app, port=<backend port>)
+Leave `EXPO_PUBLIC_AUTH_TOKEN` unset to reproduce production, where the token comes from Settings; set it to `dev-token` to skip the token screen.
+Tests, safe beside other sessions: none, there is no test suite. Check the change in the browser on your own port.
+Tests, full (integrator only): none.
+Do not: run `fab` deploy tasks or build `08_app/dist` from a worktree; touch `/var/lib/huxa` or the synced `~/HuXa-data`; install into the main checkout's `node_modules` or `venv`.
