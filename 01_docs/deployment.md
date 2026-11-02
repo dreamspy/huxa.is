@@ -230,6 +230,18 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+## Preview Environments
+
+Feature branches can be tested on the server before they are merged. Each worktree under `/opt/huxa-dev/<topic>` can be served at `https://dev-<topic>.huxa.is` with its own backend and its own copy of the data.
+
+- `05_scripts/server_dev_setup.sh` (once, as root): node 22, tmux, swap, the `huxadev` user that owns `/opt/huxa` and `/opt/huxa-dev/`, shared `node_modules`, a GitHub deploy key.
+- `05_scripts/server_preview_setup.sh` (once, as root): `/var/lib/huxa-preview/`, `/etc/huxa/preview.env` (token and OpenAI key copied from the production unit), the `huxa-preview@` systemd user unit, the `huxa-preview` nginx site.
+- `05_scripts/preview.sh up|down|list` (as `huxadev`): builds the worktree's web app into `/var/lib/huxa-preview/<topic>/www`, copies the production JSONL files on first run, and starts uvicorn on `/var/lib/huxa-preview/<topic>/backend.sock`.
+
+Nginx matches `dev-<topic>.huxa.is` with a regex server name and derives the web root and the backend socket from the name, so no reload is needed per preview. Cloudflare needs a proxied wildcard `*.huxa.is` record; Universal SSL covers one wildcard level, which is why previews are `dev-<topic>` and not `<topic>.dev`. The origin certificate must include `*.huxa.is`. Unknown names under the wildcard get connection closed (`return 444`).
+
+Preview data lives outside `/var/lib/huxa/` so Syncthing never picks it up and `huxadev` cannot write to the production store (the directory is owned by `huxa`, group-writable, and `huxadev` is not in the group).
+
 ## Syncthing Sync
 
 Syncthing runs on both the EC2 server and the target Mac. The shared folder is `/var/lib/huxa/`. The Mac receives a continuously updated copy of the full event stream and derived data.

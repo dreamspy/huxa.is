@@ -1,0 +1,21 @@
+# Preview backend for the worktree at /opt/huxa-dev/<topic>. A systemd user
+# unit for huxadev, installed to ~/.config/systemd/user/ by
+# 05_scripts/server_preview_setup.sh and started by 05_scripts/preview.sh:
+#   systemctl --user start huxa-preview@<topic>
+# /etc/huxa/preview.env carries HUXA_AUTH_TOKEN and OPENAI_API_KEY, the
+# per-preview env file the data paths under /var/lib/huxa-preview/<topic>/.
+
+[Unit]
+Description=HuXa preview backend (%i)
+
+[Service]
+EnvironmentFile=/etc/huxa/preview.env
+EnvironmentFile=/var/lib/huxa-preview/%i/env
+WorkingDirectory=/opt/huxa-dev/%i/02_backend
+ExecStartPre=/bin/rm -f /var/lib/huxa-preview/%i/backend.sock
+ExecStart=/opt/huxa-dev/%i/02_backend/venv/bin/uvicorn app.main:app --uds /var/lib/huxa-preview/%i/backend.sock
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

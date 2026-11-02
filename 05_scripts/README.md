@@ -77,3 +77,29 @@ Creates convenience symlinks in `~/huxa/` pointing to the server's runtime direc
 ```bash
 bash setup_shortcuts.sh
 ```
+
+### server_dev_setup.sh
+
+One-time preparation of the production server for on-server feature development (Claude Code driving worktrees and previews on the box itself). Installs node 22, tmux and a 2 GB swap file, creates the `huxadev` user that owns `/opt/huxa` and `/opt/huxa-dev/` (worktree parent), installs the shared `08_app/node_modules`, runs an Expo export as a memory smoke test, and generates an ssh key to add as a GitHub deploy key with write access. Idempotent; needs a t3.medium or larger.
+
+```bash
+ssh huxa 'sudo bash -s' < 05_scripts/server_dev_setup.sh
+```
+
+### server_preview_setup.sh
+
+One-time server setup for preview environments, run after `server_dev_setup.sh`. Creates `/var/lib/huxa-preview/` for `huxadev`, writes `/etc/huxa/preview.env` with the auth token and OpenAI key copied from the production unit, installs the `huxa-preview@` systemd user unit and the `huxa-preview` nginx site, and prints the origin certificate's names so you can check it covers `*.huxa.is`. Idempotent.
+
+```bash
+ssh huxa 'sudo bash -s' < 05_scripts/server_preview_setup.sh
+```
+
+### preview.sh
+
+Runs on the server as `huxadev`. Serves a worktree at `/opt/huxa-dev/<topic>` as `https://dev-<topic>.huxa.is`: builds its web app into `/var/lib/huxa-preview/<topic>/www`, seeds the preview's data with a copy of the production JSONL files (first run only, attachments excluded), and starts its backend as the `huxa-preview@<topic>` user unit on a unix socket. The nginx config is static, so no reload is needed. The topic defaults to the current directory name when run inside a worktree.
+
+```bash
+cd /opt/huxa-dev/<topic> && /opt/huxa/05_scripts/preview.sh up    # prints the URL
+/opt/huxa/05_scripts/preview.sh list
+/opt/huxa/05_scripts/preview.sh down <topic>                       # stops the backend, deletes the preview data
+```
