@@ -2,6 +2,12 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.3 — 2026-11-02
+
+- Preview environments on the server: `05_scripts/preview.sh up` builds a worktree and serves it at `https://dev-<topic>.huxa.is` with its own backend on a copy of production data
+- Deploys run on the server through `05_scripts/deploy.sh` (build, commit dist, install requirements, restart, push). `fab deploy` now calls it
+- Phone workflow (Remote Control on the server) documented in `01_docs/phone-workflow.md`
+
 ## v0.4.0 — 2026-11-02
 
 - Ask HuXa gets a Low / Mid / High effort selector (remembered on the device, default Mid). `POST /query` takes an `effort` field: `low` keeps gpt-4o-mini (about 1 s, guesses at counts), `mid` uses gpt-5-mini with low reasoning (about 3-5 s, 96/100 on a counting test), `high` uses gpt-5-nano with medium reasoning (10-20 s, 99/100). Model map in `QUERY_MODELS` in `main.py`, measurements in `02_backend/README.md`
