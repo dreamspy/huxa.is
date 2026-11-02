@@ -13,7 +13,7 @@ Start the backend (port 8000) and Expo dev server for local development. Sets up
 ./05_scripts/dev_server.sh --web    # Backend + Expo web (http://localhost:8081)
 ```
 
-Loads `OPENAI_API_KEY` from `02_backend/.env`. Overrides auth token to `dev-token` and data paths to `/tmp/huxa_dev/`. Auto-detects your Mac's LAN IP so all clients (browser, simulator, iPhone on the same WiFi) connect to the local backend. Requires Python 3.13.
+Loads `OPENAI_API_KEY` from `02_backend/.env`. Disables auth (empty `HUXA_AUTH_TOKEN`, so neither the backend nor the app needs a token) and overrides data paths to `/tmp/huxa_dev/`. Auto-detects your Mac's LAN IP so all clients (browser, simulator, iPhone on the same WiFi) connect to the local backend. Requires Python 3.13.
 
 ### summarize_day.py
 

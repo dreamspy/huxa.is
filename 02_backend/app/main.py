@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,7 +30,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 EVENTS_FILE = Path(os.environ.get("HUXA_EVENTS_FILE", "/var/lib/huxa/events.jsonl"))
 CATEGORIES_FILE = Path(os.environ.get("HUXA_CATEGORIES_FILE", "/var/lib/huxa/categories.json"))
@@ -40,10 +41,14 @@ AUTH_TOKEN = os.environ.get("HUXA_AUTH_TOKEN", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+if not AUTH_TOKEN:
+    logging.getLogger("uvicorn.error").warning("HUXA_AUTH_TOKEN is empty: authentication is disabled")
+
+
+def verify_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     if not AUTH_TOKEN:
-        return  # No token configured — skip auth (local dev)
-    if credentials.credentials != AUTH_TOKEN:
+        return  # No token configured: auth disabled (local dev)
+    if credentials is None or credentials.credentials != AUTH_TOKEN:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -63,7 +68,7 @@ def openai_error(request, exc: openai.APIError):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "auth_required": bool(AUTH_TOKEN)}
 
 
 DEFAULT_CATEGORIES = [

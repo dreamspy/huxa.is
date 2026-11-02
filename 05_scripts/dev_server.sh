@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Start the HuXa backend and Expo dev server for local development.
 # Data is stored in /tmp/huxa_dev/ so it won't affect production.
+# Auth is disabled: neither the backend nor the app needs a token.
 #
 # Usage:
 #   ./dev_server.sh          # Backend + Expo (iOS/Android)
@@ -30,7 +31,8 @@ if [ -f "$BACKEND_DIR/.env" ]; then
     set +a
 fi
 
-export HUXA_AUTH_TOKEN="dev-token"
+# Empty token: the backend skips auth and the app skips the token screen
+export HUXA_AUTH_TOKEN=""
 export HUXA_EVENTS_FILE="$DATA_DIR/events.jsonl"
 export HUXA_DIARY_FILE="$DATA_DIR/diary.jsonl"
 export HUXA_FEEDBACK_FILE="$DATA_DIR/feedback.jsonl"
@@ -39,7 +41,6 @@ export HUXA_CATEGORIES_FILE="$DATA_DIR/categories.json"
 LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || echo "127.0.0.1")
 
 export EXPO_PUBLIC_API_BASE="http://$LAN_IP:8000"
-export EXPO_PUBLIC_AUTH_TOKEN="$HUXA_AUTH_TOKEN"
 
 MODE="expo"
 if [ "${1:-}" = "--web" ]; then
@@ -52,7 +53,7 @@ if [ "$MODE" = "web" ]; then
 else
     echo "Frontend: Expo Go (scan QR code)"
 fi
-echo "Token:    $HUXA_AUTH_TOKEN"
+echo "Auth:     disabled (no token needed)"
 echo "Data dir: $DATA_DIR"
 echo ""
 
