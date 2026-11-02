@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.5 — 2026-11-02
+
+- Version bump only, no functional changes
+
 ## v0.4.4 — 2026-11-02
 
 - Version bump only, no functional changes
