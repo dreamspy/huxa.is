@@ -334,6 +334,27 @@ function AppContent() {
   var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "recording" | "transcribing"
   var recorderRef = useRef(null);
   var levelCanvasRef = useRef(null);
+  var _ql = useState(null), quickLogged = _ql[0], setQuickLogged = _ql[1]; // { event, offline } shown on the home screen after a quick log
+
+  // Sizes the level canvas for the device pixel ratio and draws one bar per LEVEL_PITCH px,
+  // right to left, with the height from levelAt(k, x) in 0..1. k is the bar index from the right.
+  function drawLevelBars(color, offset, levelAt) {
+    var canvas = levelCanvasRef.current;
+    if (!canvas) return;
+    var dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = color;
+    var x = w - offset;
+    for (var k = 0; x + LEVEL_BAR_W > 0; k++, x -= LEVEL_PITCH) {
+      var bh = LEVEL_MIN_H + Math.max(0, Math.min(1, levelAt(k, x))) * (LEVEL_MAX_H - LEVEL_MIN_H);
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, (h - bh) / 2, LEVEL_BAR_W, bh, 1.5); ctx.fill(); }
+      else ctx.fillRect(x, (h - bh) / 2, LEVEL_BAR_W, bh);
+    }
+  }
   var osScheme = useColorScheme();
   var C = useMemo(function () { return getColors(colorProfile, osScheme); }, [colorProfile, osScheme]);
   var st = useMemo(function () { return makeStyles(C); }, [C]);
@@ -414,21 +435,8 @@ function AppContent() {
           var level = Math.min(1, Math.sqrt(sum / buf.length) * 4);
           smoothed = level > smoothed ? level : smoothed * 0.7 + level * 0.3; // quick attack, soft decay
           while (now - lastSample >= LEVEL_MS) { samples.unshift(smoothed); samples.pop(); lastSample += LEVEL_MS; }
-          var canvas = levelCanvasRef.current;
-          if (!canvas) return;
-          var dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
-          if (!w || !h) return;
-          if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
-          var ctx = canvas.getContext("2d");
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          ctx.clearRect(0, 0, w, h);
-          ctx.fillStyle = barColor;
-          var x = w - ((now - lastSample) / LEVEL_MS) * LEVEL_PITCH; // newest bar slides in from the right edge
-          for (var k = 0; k < samples.length && x + LEVEL_BAR_W > 0; k++, x -= LEVEL_PITCH) {
-            var bh = LEVEL_MIN_H + samples[k] * (LEVEL_MAX_H - LEVEL_MIN_H);
-            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, (h - bh) / 2, LEVEL_BAR_W, bh, 1.5); ctx.fill(); }
-            else ctx.fillRect(x, (h - bh) / 2, LEVEL_BAR_W, bh);
-          }
+          // newest bar slides in from the right edge
+          drawLevelBars(barColor, ((now - lastSample) / LEVEL_MS) * LEVEL_PITCH, function (k) { return samples[k] || 0; });
         };
         rec.raf = requestAnimationFrame(draw);
         audioCtx.resume();
@@ -473,16 +481,24 @@ function AppContent() {
     fetch(API_BASE + "/events", { method: "POST", headers: authHeaders(), body: JSON.stringify(event) })
       .then(function (res) {
         if (!res.ok) return res.json().catch(function () { return {}; }).then(function (body) { throw new Error(body.detail || "HTTP " + res.status); });
-        showToastMsg("Logged: " + (text.length > 60 ? text.slice(0, 57) + "..." : text), "success");
+        setQuickLogged({ event: event, offline: false });
       })
       .catch(function (err) {
-        if (err instanceof TypeError) { addToQueueFn("event", event); showToastMsg("Saved offline", "success"); return; }
+        if (err instanceof TypeError) { addToQueueFn("event", event); setQuickLogged({ event: event, offline: true }); return; }
         showToastMsg(err.message || "Network error", "error");
       });
   }
 
   function transcribeBlob(blob, onText) {
     setDictation("transcribing");
+    // Waiting animation: humps rolling across the bars
+    var waveColor = C.muted;
+    var raf = null;
+    var wave = function (now) {
+      raf = requestAnimationFrame(wave);
+      drawLevelBars(waveColor, 0, function (k, x) { var v = 0.5 + 0.5 * Math.sin(x * 0.035 - now * 0.005); return v * v; });
+    };
+    raf = requestAnimationFrame(wave);
     var type = (blob.type || "").split(";")[0];
     var ext = type === "audio/mp4" ? "mp4" : type === "audio/ogg" ? "ogg" : "webm";
     var formData = new FormData();
@@ -497,7 +513,7 @@ function AppContent() {
         else showToastMsg("Nothing heard", "error");
       })
       .catch(function (err) { showToastMsg(err.message || "Transcription failed", "error"); })
-      .finally(function () { setDictation(null); });
+      .finally(function () { cancelAnimationFrame(raf); setDictation(null); });
   }
 
   // Leaving a screen mid-recording drops the take rather than inserting it somewhere else
@@ -511,7 +527,7 @@ function AppContent() {
   // cancel (left), a level graph and stop (right); the transcript is appended via onText.
   function renderDictateBar(style) {
     if (dictation === "transcribing") {
-      return <View style={[style, st.dictateBar, { justifyContent: "center" }]}><Text style={st.dictateHint}>Transcribing...</Text></View>;
+      return <View style={[style, st.dictateBar]}><canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28 }} /></View>;
     }
     return (
       <View style={[style, st.dictateBar]}>
@@ -928,12 +944,22 @@ function AppContent() {
         <View style={st.idleButtons}>
           <TouchableOpacity style={st.btn} onPress={function () { if (needsToken()) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
           {DICTATION_SUPPORTED && (dictation ? renderDictateBar([st.btn, st.btnSecondary, st.quickLogBar]) :
-            <TouchableOpacity style={[st.btn, st.btnSecondary, st.quickLogBtn]} onPress={function () { if (needsToken()) setScreen("token"); else startDictation(quickLog); }}><MicIcon color={C.text} /><Text style={st.btnText}>Quick log</Text></TouchableOpacity>)}
+            <TouchableOpacity style={[st.btn, st.btnSecondary, st.quickLogBtn]} onPress={function () { if (needsToken()) setScreen("token"); else { setQuickLogged(null); startDictation(quickLog); } }}><MicIcon color={C.text} /><Text style={st.btnText}>Quick log</Text></TouchableOpacity>)}
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else startDiary(todayStr()); }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={openHistory}><Text style={st.btnText}>History</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else { setQueryText(""); setQueryAnswer(""); setScreen("query"); } }}><Text style={st.btnText}>Ask HuXa</Text></TouchableOpacity>
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
         </View>
+        {quickLogged && (
+          <View style={[st.summaryBox, { marginTop: 16, marginBottom: 0 }]}>
+            <Text style={st.labelSmall}>{quickLogged.offline ? "Saved offline as " + quickLogged.event.type : "Logged as " + quickLogged.event.type}</Text>
+            <Text style={st.summaryText}>{quickLogged.event.text}</Text>
+            <View style={st.row}>
+              <TouchableOpacity style={st.btnBack} onPress={function () { setQuickLogged(null); }}><Text style={st.btnBackText}>Done</Text></TouchableOpacity>
+              {!quickLogged.offline && <TouchableOpacity style={st.btnSubmit} onPress={function () { var ev = quickLogged.event; setQuickLogged(null); editEvent(ev); }}><Text style={st.btnSubmitText}>Edit</Text></TouchableOpacity>}
+            </View>
+          </View>
+        )}
         <TouchableOpacity style={st.settingsBtn} onPress={function () { setTokenInput(token); setScreen("token"); }}><Text style={st.settingsBtnText}>Settings</Text></TouchableOpacity>
         <TouchableOpacity style={st.versionBtn} activeOpacity={1} onLongPress={function () { setScreen("tetris"); }}><Text style={st.version}>v{APP_VERSION}</Text></TouchableOpacity>
         {renderToast()}
