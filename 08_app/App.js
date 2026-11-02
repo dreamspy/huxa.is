@@ -30,6 +30,7 @@ const APP_VERSION = "0.4.9";
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
 // Level graph: one bar per LEVEL_MS of audio, newest at the right edge, scrolled left between samples
 const LEVEL_MS = 70, LEVEL_PITCH = 6, LEVEL_BAR_W = 3, LEVEL_MIN_H = 4, LEVEL_MAX_H = 26;
+const MAX_RECORD_MS = 5 * 60 * 1000; // a recording stops itself here and is transcribed
 // Waiting wave (mic opening, transcribing) is a CSS animation: it keeps moving while the main
 // thread is busy handing over the microphone, which a canvas loop cannot.
 const WAVE_PERIOD_S = 1.2, WAVE_STAGGER_S = 0.06, WAVE_BARS = 120;
@@ -469,6 +470,7 @@ function AppContent() {
       recorder.onstop = function () {
         stream.getTracks().forEach(function (t) { t.stop(); });
         if (rec.raf) cancelAnimationFrame(rec.raf);
+        clearTimeout(rec.limit);
         if (audioCtx) audioCtx.close();
         recorderRef.current = null;
         if (rec.cancelled) { setDictation(null); return; }
@@ -476,6 +478,7 @@ function AppContent() {
       };
       setDictation("recording");
       recorder.start();
+      rec.limit = setTimeout(function () { showToastMsg("Stopped after 5 minutes", "error"); stopDictation(false); }, MAX_RECORD_MS);
     }).catch(function (err) {
       if (audioCtx) audioCtx.close();
       if (rec.cancelled) return;
