@@ -23,7 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.4.5";
+const APP_VERSION = "0.4.6";
 
 const COLOR_PROFILES = {
   dark: {
@@ -195,7 +195,6 @@ function WebDateInput(props) {
 }
 
 const DIARY_QUESTIONS = [
-  { key: "sleep", label: "Sleep Quality", question: "How was your sleep quality last night?", type: "scale", min: 1, max: 10 },
   { key: "headaches", label: "Headaches", question: "How are your headaches today?", type: "scale", min: 1, max: 10 },
   { key: "energy", label: "Energy", question: "How is your energy level today?", type: "scale", min: 1, max: 10 },
   { key: "gut", label: "Gut Status", question: "How is your gut feeling today?", type: "text" },
