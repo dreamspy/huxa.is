@@ -172,6 +172,8 @@ function makeStyles(C) {
     toastError: { backgroundColor: C.error },
     toastText: { color: "#fff", fontSize: 14, fontWeight: "600" },
     dictateWrap: { width: "100%" },
+    quickLogBtn: { flexDirection: "row", justifyContent: "center", gap: 10 },
+    quickLogBar: { paddingHorizontal: 12 },
     dictateMic: { position: "absolute", right: 10, bottom: 22, width: 30, height: 30, alignItems: "center", justifyContent: "center" },
     dictateBar: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     dictateIconBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.surface, alignItems: "center", justifyContent: "center" },
@@ -380,12 +382,21 @@ function AppContent() {
     // Created inside the tap handler: Safari only lets audio start from a user gesture
     var AC = window.AudioContext || window.webkitAudioContext;
     var audioCtx = AC ? new AC() : null;
+    // The bar shows at once; the mic takes a moment to open and the bars start moving when it has
+    var rec = { recorder: null, cancelled: false, raf: null };
+    recorderRef.current = rec;
+    setDictation("recording");
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      if (rec.cancelled) {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        if (audioCtx) audioCtx.close();
+        return;
+      }
       // Safari records audio/mp4, Chrome and Firefox audio/webm; OpenAI accepts both
       var mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0];
       var recorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
       var chunks = [];
-      var rec = { recorder: recorder, cancelled: false, raf: null };
+      rec.recorder = recorder;
       if (audioCtx) {
         var analyser = audioCtx.createAnalyser();
         analyser.fftSize = 512;
@@ -431,11 +442,12 @@ function AppContent() {
         if (rec.cancelled) { setDictation(null); return; }
         transcribeBlob(new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), onText);
       };
-      recorderRef.current = rec;
-      setDictation("recording");
       recorder.start();
     }).catch(function (err) {
       if (audioCtx) audioCtx.close();
+      if (rec.cancelled) return;
+      recorderRef.current = null;
+      setDictation(null);
       showToastMsg(err && err.name === "NotAllowedError" ? "Microphone access denied" : "Microphone unavailable", "error");
     });
   }
@@ -443,8 +455,30 @@ function AppContent() {
   function stopDictation(cancel) {
     var rec = recorderRef.current;
     if (!rec) return;
+    if (!rec.recorder) {
+      // Mic not open yet: nothing is recorded, so stop and cancel both just close the bar
+      rec.cancelled = true;
+      recorderRef.current = null;
+      setDictation(null);
+      return;
+    }
     rec.cancelled = !!cancel;
     if (rec.recorder.state !== "inactive") rec.recorder.stop();
+  }
+
+  // Quick log from the home screen: dictate, then save as an event straight away
+  function quickLog(text) {
+    var type = enabledCategories.some(function (c) { return c.key === "Event"; }) ? "Event" : (enabledCategories[0] || DEFAULT_CATEGORIES[0]).key;
+    var event = { id: generateUUID(), client_timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), type: type, text: text, metrics: {}, meta: { version: 1 } };
+    fetch(API_BASE + "/events", { method: "POST", headers: authHeaders(), body: JSON.stringify(event) })
+      .then(function (res) {
+        if (!res.ok) return res.json().catch(function () { return {}; }).then(function (body) { throw new Error(body.detail || "HTTP " + res.status); });
+        showToastMsg("Logged: " + (text.length > 60 ? text.slice(0, 57) + "..." : text), "success");
+      })
+      .catch(function (err) {
+        if (err instanceof TypeError) { addToQueueFn("event", event); showToastMsg("Saved offline", "success"); return; }
+        showToastMsg(err.message || "Network error", "error");
+      });
   }
 
   function transcribeBlob(blob, onText) {
@@ -475,20 +509,22 @@ function AppContent() {
 
   // A TextInput with a mic button in its right edge. While recording the box turns into
   // cancel (left), a level graph and stop (right); the transcript is appended via onText.
+  function renderDictateBar(style) {
+    if (dictation === "transcribing") {
+      return <View style={[style, st.dictateBar, { justifyContent: "center" }]}><Text style={st.dictateHint}>Transcribing...</Text></View>;
+    }
+    return (
+      <View style={[style, st.dictateBar]}>
+        <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><View style={st.dictateX}><View style={[st.dictateXBar, { transform: [{ rotate: "45deg" }] }]} /><View style={[st.dictateXBar, { transform: [{ rotate: "-45deg" }] }]} /></View></TouchableOpacity>
+        <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />
+        <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
+      </View>
+    );
+  }
+
   function renderDictateInput(props, onText) {
     if (!DICTATION_SUPPORTED) return <TextInput {...props} />;
-    if (dictation === "recording") {
-      return (
-        <View style={[props.style, st.dictateBar]}>
-          <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><View style={st.dictateX}><View style={[st.dictateXBar, { transform: [{ rotate: "45deg" }] }]} /><View style={[st.dictateXBar, { transform: [{ rotate: "-45deg" }] }]} /></View></TouchableOpacity>
-          <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />
-          <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
-        </View>
-      );
-    }
-    if (dictation === "transcribing") {
-      return <View style={[props.style, st.dictateBar, { justifyContent: "center" }]}><Text style={st.dictateHint}>Transcribing...</Text></View>;
-    }
+    if (dictation) return renderDictateBar(props.style);
     return (
       <View style={st.dictateWrap}>
         <TextInput {...props} style={[props.style, { paddingRight: 48 }]} />
@@ -891,6 +927,8 @@ function AppContent() {
         <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <View style={st.idleButtons}>
           <TouchableOpacity style={st.btn} onPress={function () { if (needsToken()) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
+          {DICTATION_SUPPORTED && (dictation ? renderDictateBar([st.btn, st.btnSecondary, st.quickLogBar]) :
+            <TouchableOpacity style={[st.btn, st.btnSecondary, st.quickLogBtn]} onPress={function () { if (needsToken()) setScreen("token"); else startDictation(quickLog); }}><MicIcon color={C.text} /><Text style={st.btnText}>Quick log</Text></TouchableOpacity>)}
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else startDiary(todayStr()); }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={openHistory}><Text style={st.btnText}>History</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else { setQueryText(""); setQueryAnswer(""); setScreen("query"); } }}><Text style={st.btnText}>Ask HuXa</Text></TouchableOpacity>

@@ -86,6 +86,7 @@ Server-side transcription through OpenAI, ChatGPT-style UX: mic button in the te
 
 - [x] Backend `POST /transcribe` (multipart audio to `gpt-4o-transcribe`, returns text)
 - [x] Web recording UI (mic in the field, level graph, cancel/stop) on compose, diary text answers and Ask HuXa
+- [x] Quick log button on the home screen: dictate and save as an Event without leaving the page
 - [ ] Native recording (`expo-audio`) so the button also appears in the iOS/Android builds
 - [ ] Compare `gpt-4o-transcribe` against ElevenLabs Scribe v2 on own Icelandic/English recordings
 - [ ] Optional cleanup pass (filler words, punctuation) if raw transcripts need it
