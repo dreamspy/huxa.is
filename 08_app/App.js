@@ -28,6 +28,10 @@ const APP_VERSION = "0.4.9";
 // Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
+const LEVEL_BARS = 40;
+function micIcon(color) {
+  return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>');
+}
 
 const COLOR_PROFILES = {
   dark: {
@@ -158,11 +162,15 @@ function makeStyles(C) {
     toastSuccess: { backgroundColor: C.success },
     toastError: { backgroundColor: C.error },
     toastText: { color: "#fff", fontSize: 14, fontWeight: "600" },
-    dictateRow: { flexDirection: "row", width: "100%", gap: 8, marginTop: -4, marginBottom: 12, alignItems: "center" },
-    dictateBtn: { backgroundColor: C.surface, borderRadius: 25, paddingVertical: 8, paddingHorizontal: 16 },
-    dictateBtnActive: { backgroundColor: C.error },
-    dictateBtnText: { color: C.text, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
-    dictateHint: { color: C.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1, paddingVertical: 8 },
+    dictateWrap: { width: "100%" },
+    dictateMic: { position: "absolute", right: 10, bottom: 22, width: 30, height: 30, alignItems: "center", justifyContent: "center" },
+    dictateBar: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    dictateIconBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.surface, alignItems: "center", justifyContent: "center" },
+    dictateX: { color: C.text, fontSize: 15, fontWeight: "600" },
+    dictateStop: { width: 13, height: 13, borderRadius: 3, backgroundColor: C.text },
+    dictateLevels: { flex: 1, height: 28, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginHorizontal: 10, overflow: "hidden" },
+    dictateLevelBar: { width: 3, borderRadius: 2, marginHorizontal: 1.5, backgroundColor: C.text },
+    dictateHint: { color: C.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
     confirmOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
     confirmBox: { backgroundColor: C.surface, borderRadius: 15, padding: 20, width: "100%", maxWidth: 340 },
     confirmTitle: { color: C.text, fontSize: 16, fontWeight: "600", marginBottom: 8 },
@@ -314,7 +322,7 @@ function AppContent() {
   var _cp = useState(DEFAULT_PROFILE), colorProfile = _cp[0], setColorProfile = _cp[1];
 
   var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "recording" | "transcribing"
-  var _dc2 = useState(0), dictationSeconds = _dc2[0], setDictationSeconds = _dc2[1];
+  var _dc2 = useState(null), dictationLevels = _dc2[0], setDictationLevels = _dc2[1];
   var recorderRef = useRef(null);
   var osScheme = useColorScheme();
   var C = useMemo(function () { return getColors(colorProfile, osScheme); }, [colorProfile, osScheme]);
@@ -361,27 +369,44 @@ function AppContent() {
   // --- DICTATION ---
   function startDictation(onText) {
     if (recorderRef.current) return;
+    // Created inside the tap handler: Safari only lets audio start from a user gesture
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var audioCtx = AC ? new AC() : null;
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
       // Safari records audio/mp4, Chrome and Firefox audio/webm; OpenAI accepts both
       var mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0];
       var recorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
       var chunks = [];
-      var started = Date.now();
-      var rec = { recorder: recorder, cancelled: false };
-      rec.timer = setInterval(function () { setDictationSeconds(Math.floor((Date.now() - started) / 1000)); }, 500);
+      var rec = { recorder: recorder, cancelled: false, meter: null };
+      if (audioCtx) {
+        var analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        audioCtx.createMediaStreamSource(stream).connect(analyser);
+        var buf = new Uint8Array(analyser.fftSize);
+        rec.meter = setInterval(function () {
+          analyser.getByteTimeDomainData(buf);
+          var sum = 0;
+          for (var i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; sum += v * v; }
+          var level = Math.min(1, Math.sqrt(sum / buf.length) * 4);
+          setDictationLevels(function (prev) { return (prev || []).slice(1).concat(level); });
+        }, 70);
+        audioCtx.resume();
+      }
       recorder.ondataavailable = function (e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = function () {
         stream.getTracks().forEach(function (t) { t.stop(); });
-        clearInterval(rec.timer);
+        clearInterval(rec.meter);
+        if (audioCtx) audioCtx.close();
         recorderRef.current = null;
         if (rec.cancelled) { setDictation(null); return; }
         transcribeBlob(new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), onText);
       };
       recorderRef.current = rec;
-      setDictationSeconds(0);
+      setDictationLevels(new Array(LEVEL_BARS).fill(0));
       setDictation("recording");
       recorder.start();
     }).catch(function (err) {
+      if (audioCtx) audioCtx.close();
       showToastMsg(err && err.name === "NotAllowedError" ? "Microphone access denied" : "Microphone unavailable", "error");
     });
   }
@@ -419,21 +444,30 @@ function AppContent() {
     return prev && prev.trim() ? prev.replace(/\s+$/, "") + " " + text : text;
   }
 
-  function renderDictate(onText) {
-    if (!DICTATION_SUPPORTED) return null;
-    if (dictation === "transcribing") {
-      return <View style={st.dictateRow}><Text style={st.dictateHint}>Transcribing...</Text></View>;
-    }
+  // A TextInput with a mic button in its right edge. While recording the box turns into
+  // cancel (left), a level graph and stop (right); the transcript is appended via onText.
+  function renderDictateInput(props, onText) {
+    if (!DICTATION_SUPPORTED) return <TextInput {...props} />;
     if (dictation === "recording") {
-      var m = Math.floor(dictationSeconds / 60), sec = dictationSeconds % 60;
       return (
-        <View style={st.dictateRow}>
-          <TouchableOpacity style={[st.dictateBtn, st.dictateBtnActive]} onPress={function () { stopDictation(false); }}><Text style={st.dictateBtnText}>Stop {m}:{sec < 10 ? "0" + sec : sec}</Text></TouchableOpacity>
-          <TouchableOpacity style={st.dictateBtn} onPress={function () { stopDictation(true); }}><Text style={st.dictateBtnText}>Cancel</Text></TouchableOpacity>
+        <View style={[props.style, st.dictateBar]}>
+          <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><Text style={st.dictateX}>{"\u2715"}</Text></TouchableOpacity>
+          <View style={st.dictateLevels}>
+            {(dictationLevels || []).map(function (l, i) { return <View key={i} style={[st.dictateLevelBar, { height: 4 + Math.round(l * 22) }]} />; })}
+          </View>
+          <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
         </View>
       );
     }
-    return <View style={st.dictateRow}><TouchableOpacity style={st.dictateBtn} onPress={function () { startDictation(onText); }}><Text style={st.dictateBtnText}>Dictate</Text></TouchableOpacity></View>;
+    if (dictation === "transcribing") {
+      return <View style={[props.style, st.dictateBar, { justifyContent: "center" }]}><Text style={st.dictateHint}>Transcribing...</Text></View>;
+    }
+    return (
+      <View style={st.dictateWrap}>
+        <TextInput {...props} style={[props.style, { paddingRight: 48 }]} />
+        <TouchableOpacity style={st.dictateMic} onPress={function () { startDictation(onText); }}><Image source={{ uri: micIcon(C.muted) }} style={{ width: 22, height: 22 }} /></TouchableOpacity>
+      </View>
+    );
   }
 
   function confirmAction(title, message, onConfirm) {
@@ -1075,8 +1109,8 @@ function AppContent() {
               {Platform.OS === "web" ? <WebDateInput colors={C} value={composeDate} mode="time" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="time" display="compact" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
             </View>
             {composeFields.map(renderComposeField)}
-            <TextInput style={[st.input, st.textArea]} placeholder={composeFields.length > 0 ? "Any comments?" : "What happened?"} placeholderTextColor={C.muted} value={composeText} onChangeText={setComposeText} multiline numberOfLines={3} />
-            {renderDictate(function (t) { setComposeText(function (prev) { return appendText(prev, t); }); })}
+            {renderDictateInput({ style: [st.input, st.textArea], placeholder: composeFields.length > 0 ? "Any comments?" : "What happened?", placeholderTextColor: C.muted, value: composeText, onChangeText: setComposeText, multiline: true, numberOfLines: 3 },
+              function (t) { setComposeText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (editingEventId) { setEditingEventId(null); setScreen("history"); doFetchHistory(historyTab, historyDate); } else setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () { submitEvent(null); }}><Text style={st.btnSubmitText}>Submit</Text></TouchableOpacity>
@@ -1110,16 +1144,8 @@ function AppContent() {
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Ask HuXa</Text>
-            <TextInput
-              style={st.input}
-              placeholder="e.g. How many events this week?"
-              placeholderTextColor={C.muted}
-              value={queryText}
-              onChangeText={setQueryText}
-              returnKeyType="send"
-              onSubmitEditing={submitQuery}
-            />
-            {renderDictate(function (t) { setQueryText(function (prev) { return appendText(prev, t); }); })}
+            {renderDictateInput({ style: st.input, placeholder: "e.g. How many events this week?", placeholderTextColor: C.muted, value: queryText, onChangeText: setQueryText, returnKeyType: "send", onSubmitEditing: submitQuery },
+              function (t) { setQueryText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               {QUERY_EFFORTS.map(function (e) {
                 return (
@@ -1315,16 +1341,8 @@ function AppContent() {
               })}
             </View>
             <View style={{ height: 12 }} />
-            <TextInput
-              style={[st.input, st.textArea, { minHeight: 120 }]}
-              placeholder="Type or dictate your answers..."
-              placeholderTextColor={C.muted}
-              value={bulkText}
-              onChangeText={setBulkText}
-              multiline
-              numberOfLines={6}
-            />
-            {renderDictate(function (t) { setBulkText(function (prev) { return appendText(prev, t); }); })}
+            {renderDictateInput({ style: [st.input, st.textArea, { minHeight: 120 }], placeholder: "Type or dictate your answers...", placeholderTextColor: C.muted, value: bulkText, onChangeText: setBulkText, multiline: true, numberOfLines: 6 },
+              function (t) { setBulkText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("diary-bulk-scales"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () {
@@ -1375,10 +1393,8 @@ function AppContent() {
             <Text style={st.label}>{q.label}</Text>
             <Text style={st.question}>{q.question}</Text>
             {q.type === "scale" ? renderScaleGrid(q.key, q.min, q.max, function () { if (isLast) setScreen("diary-review"); else setDiaryStep(diaryStep + 1); }) :
-              <View style={{ width: "100%" }}>
-                <TextInput style={[st.input, st.textArea]} placeholder="Type your answer..." placeholderTextColor={C.muted} value={diaryAnswers[q.key] || ""} onChangeText={function (t) { setDiaryAnswer(q.key, t); }} multiline numberOfLines={3} />
-                {renderDictate(function (t) { setDiaryAnswer(q.key, appendText(diaryAnswers[q.key] || "", t)); })}
-              </View>
+              renderDictateInput({ style: [st.input, st.textArea], placeholder: "Type your answer...", placeholderTextColor: C.muted, value: diaryAnswers[q.key] || "", onChangeText: function (t) { setDiaryAnswer(q.key, t); }, multiline: true, numberOfLines: 3 },
+                function (t) { setDiaryAnswer(q.key, appendText(diaryAnswers[q.key] || "", t)); })
             }
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (diaryStep > 0) setDiaryStep(diaryStep - 1); else setScreen("diary-summary"); }}><Text style={st.btnBackText}>{diaryStep === 0 ? "Back" : "Prev"}</Text></TouchableOpacity>

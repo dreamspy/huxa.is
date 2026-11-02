@@ -82,10 +82,10 @@ The current `/query` endpoint sends the entire event log to GPT. At ~10 events/d
 
 ## Voice Input
 
-Server-side transcription through OpenAI, ChatGPT-style UX: Dictate button under the text field, record, Stop, text is appended to the field for editing before submit. The 2026-06-06 plan (ElevenLabs Scribe v2 first, `01_docs/voice-input-plan.md`) was never committed; the Scribe comparison is still open if Icelandic accuracy turns out poor.
+Server-side transcription through OpenAI, ChatGPT-style UX: mic button in the text field, the field turns into cancel, level graph and stop while recording, text is appended to the field for editing before submit. The 2026-06-06 plan (ElevenLabs Scribe v2 first, `01_docs/voice-input-plan.md`) was never committed; the Scribe comparison is still open if Icelandic accuracy turns out poor.
 
 - [x] Backend `POST /transcribe` (multipart audio to `gpt-4o-transcribe`, returns text)
-- [x] Web recording UI with MediaRecorder on compose, diary text answers and Ask HuXa
+- [x] Web recording UI (mic in the field, level graph, cancel/stop) on compose, diary text answers and Ask HuXa
 - [ ] Native recording (`expo-audio`) so the button also appears in the iOS/Android builds
 - [ ] Compare `gpt-4o-transcribe` against ElevenLabs Scribe v2 on own Icelandic/English recordings
 - [ ] Optional cleanup pass (filler words, punctuation) if raw transcripts need it
