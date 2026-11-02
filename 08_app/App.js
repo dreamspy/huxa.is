@@ -824,10 +824,10 @@ function AppContent() {
     setEditingEventId(ev.id); setSelectedType(ev.type); setComposeText(ev.text); setComposeDate(new Date(ev.client_timestamp)); setScreen("compose");
   }
 
-  function deleteEvent(ev) {
+  function deleteEvent(ev, onDone) {
     confirmAction("Delete Event", "Are you sure you want to delete this event?", function () {
       fetch(API_BASE + "/events/" + ev.id, { method: "DELETE", headers: authHeaders() })
-        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); doFetchHistory(historyTab, historyDate); })
+        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); if (onDone) onDone(); doFetchHistory(historyTab, historyDate); })
         .catch(function (err) { showToastMsg(err.message, "error"); });
     });
   }
@@ -1206,6 +1206,11 @@ function AppContent() {
               <TouchableOpacity style={st.btnBack} onPress={function () { if (editingEventId) { setEditingEventId(null); setScreen("history"); doFetchHistory(historyTab, historyDate); } else setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () { submitEvent(null); }}><Text style={st.btnSubmitText}>Submit</Text></TouchableOpacity>
             </View>
+            {editingEventId && (
+              <View style={st.row}>
+                <TouchableOpacity style={[st.btnBack, { borderColor: C.error }]} onPress={function () { deleteEvent({ id: editingEventId }, function () { setEditingEventId(null); setScreen("history"); }); }}><Text style={[st.btnBackText, { color: C.error }]}>Delete</Text></TouchableOpacity>
+              </View>
+            )}
             {!editingEventId && (
               <View style={st.submitNewSection}>
                 <Text style={st.labelSmall}>Submit & log another</Text>
