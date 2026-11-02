@@ -28,7 +28,7 @@ const APP_VERSION = "0.4.9";
 // Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
-const LEVEL_BARS = 40;
+const LEVEL_BARS = 160; // more than fit in any box; the graph is right-aligned and clips the oldest on the left
 function MicIcon(props) {
   var c = props.color;
   return (
