@@ -175,7 +175,8 @@ function makeStyles(C) {
     dictateMic: { position: "absolute", right: 10, bottom: 22, width: 30, height: 30, alignItems: "center", justifyContent: "center" },
     dictateBar: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     dictateIconBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.surface, alignItems: "center", justifyContent: "center" },
-    dictateX: { color: C.text, fontSize: 15, fontWeight: "600" },
+    dictateX: { width: 14, height: 14, alignItems: "center", justifyContent: "center" },
+    dictateXBar: { position: "absolute", width: 16, height: 2.5, borderRadius: 1.5, backgroundColor: C.text },
     dictateStop: { width: 13, height: 13, borderRadius: 3, backgroundColor: C.text },
     dictateHint: { color: C.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
     confirmOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
@@ -479,7 +480,7 @@ function AppContent() {
     if (dictation === "recording") {
       return (
         <View style={[props.style, st.dictateBar]}>
-          <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><Text style={st.dictateX}>{"\u2715"}</Text></TouchableOpacity>
+          <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><View style={st.dictateX}><View style={[st.dictateXBar, { transform: [{ rotate: "45deg" }] }]} /><View style={[st.dictateXBar, { transform: [{ rotate: "-45deg" }] }]} /></View></TouchableOpacity>
           <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />
           <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
         </View>
