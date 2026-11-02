@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.4 — 2026-11-02
+
+- Version bump only, no functional changes
+
 ## v0.4.3 — 2026-11-02
 
 - Preview environments on the server: `05_scripts/preview.sh up` builds a worktree and serves it at `https://dev-<topic>.huxa.is` with its own backend on a copy of production data
