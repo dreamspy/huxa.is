@@ -30,6 +30,26 @@ const APP_VERSION = "0.4.9";
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
 // Level graph: one bar per LEVEL_MS of audio, newest at the right edge, scrolled left between samples
 const LEVEL_MS = 70, LEVEL_PITCH = 6, LEVEL_BAR_W = 3, LEVEL_MIN_H = 4, LEVEL_MAX_H = 26;
+// Waiting wave (mic opening, transcribing) is a CSS animation: it keeps moving while the main
+// thread is busy handing over the microphone, which a canvas loop cannot.
+const WAVE_PERIOD_S = 1.2, WAVE_STAGGER_S = 0.06, WAVE_BARS = 120;
+if (DICTATION_SUPPORTED) {
+  var waveStyle = document.createElement("style");
+  waveStyle.textContent = "@keyframes huxa-wave{0%,100%{transform:scaleY(" + (LEVEL_MIN_H / LEVEL_MAX_H) + ")}50%{transform:scaleY(1)}}";
+  document.head.appendChild(waveStyle);
+}
+function waveLevel(k, elapsedS) {
+  // Same shape as the CSS keyframes: bar k (from the right) runs WAVE_STAGGER_S ahead per bar
+  var p = ((elapsedS + k * WAVE_STAGGER_S) % WAVE_PERIOD_S) / WAVE_PERIOD_S;
+  return 0.5 - 0.5 * Math.cos(2 * Math.PI * p);
+}
+function WaveBars(props) {
+  var bars = [];
+  for (var k = 0; k < WAVE_BARS; k++) {
+    bars.push(<span key={k} style={{ flex: "none", width: LEVEL_BAR_W, height: LEVEL_MAX_H, margin: "0 " + ((LEVEL_PITCH - LEVEL_BAR_W) / 2) + "px", borderRadius: 1.5, background: props.color, transformOrigin: "center", animation: "huxa-wave " + WAVE_PERIOD_S + "s ease-in-out infinite", animationDelay: (-(WAVE_BARS - 1 - k) * WAVE_STAGGER_S) + "s" }} />);
+  }
+  return <div style={{ flex: 1, minWidth: 0, height: 28, marginLeft: props.margin, marginRight: props.margin, display: "flex", alignItems: "center", justifyContent: "flex-end", overflow: "hidden" }}>{bars}</div>;
+}
 function MicIcon(props) {
   var c = props.color;
   return (
@@ -331,7 +351,7 @@ function AppContent() {
 
   var _cp = useState(DEFAULT_PROFILE), colorProfile = _cp[0], setColorProfile = _cp[1];
 
-  var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "recording" | "transcribing"
+  var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "opening" | "recording" | "transcribing"
   var recorderRef = useRef(null);
   var levelCanvasRef = useRef(null);
   var _ql = useState(null), quickLogged = _ql[0], setQuickLogged = _ql[1]; // { event, offline } shown on the home screen after a quick log
@@ -398,17 +418,6 @@ function AppContent() {
   }
 
   // --- DICTATION ---
-  // Waiting animation on the level canvas: humps rolling across the bars. Returns a stop function.
-  function startWave(color) {
-    var raf = null;
-    var wave = function (now) {
-      raf = requestAnimationFrame(wave);
-      drawLevelBars(color, 0, function (k, x) { var v = 0.5 + 0.5 * Math.sin(x * 0.035 - now * 0.005); return v * v; });
-    };
-    raf = requestAnimationFrame(wave);
-    return function () { cancelAnimationFrame(raf); };
-  }
-
   function startDictation(onText) {
     if (recorderRef.current) return;
     // Created inside the tap handler: Safari only lets audio start from a user gesture
@@ -417,10 +426,9 @@ function AppContent() {
     // The bar shows at once; the mic takes a moment to open and the bars start moving when it has
     var rec = { recorder: null, cancelled: false, raf: null };
     recorderRef.current = rec;
-    setDictation("recording");
-    var stopWave = startWave(C.muted);
+    var waveStart = performance.now();
+    setDictation("opening");
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      stopWave();
       if (rec.cancelled) {
         stream.getTracks().forEach(function (t) { t.stop(); });
         if (audioCtx) audioCtx.close();
@@ -436,7 +444,10 @@ function AppContent() {
         analyser.fftSize = 512;
         audioCtx.createMediaStreamSource(stream).connect(analyser);
         var buf = new Uint8Array(analyser.fftSize);
-        var samples = new Array(400).fill(0); // newest first
+        // newest first; seeded with the waiting wave's current shape so the handover is seamless
+        var samples = [];
+        var elapsedS = (performance.now() - waveStart) / 1000;
+        for (var k0 = 0; k0 < 400; k0++) samples.push(waveLevel(k0, elapsedS));
         var lastSample = performance.now();
         var smoothed = 0;
         var barColor = C.text;
@@ -463,9 +474,9 @@ function AppContent() {
         if (rec.cancelled) { setDictation(null); return; }
         transcribeBlob(new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), onText);
       };
+      setDictation("recording");
       recorder.start();
     }).catch(function (err) {
-      stopWave();
       if (audioCtx) audioCtx.close();
       if (rec.cancelled) return;
       recorderRef.current = null;
@@ -505,7 +516,6 @@ function AppContent() {
 
   function transcribeBlob(blob, onText) {
     setDictation("transcribing");
-    var stopWave = startWave(C.muted);
     var type = (blob.type || "").split(";")[0];
     var ext = type === "audio/mp4" ? "mp4" : type === "audio/ogg" ? "ogg" : "webm";
     var formData = new FormData();
@@ -520,7 +530,7 @@ function AppContent() {
         else showToastMsg("Nothing heard", "error");
       })
       .catch(function (err) { showToastMsg(err.message || "Transcription failed", "error"); })
-      .finally(function () { stopWave(); setDictation(null); });
+      .finally(function () { setDictation(null); });
   }
 
   // Leaving a screen mid-recording drops the take rather than inserting it somewhere else
@@ -534,12 +544,12 @@ function AppContent() {
   // cancel (left), a level graph and stop (right); the transcript is appended via onText.
   function renderDictateBar(style) {
     if (dictation === "transcribing") {
-      return <View style={[style, st.dictateBar]}><canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28 }} /></View>;
+      return <View style={[style, st.dictateBar]}><WaveBars color={C.muted} margin={0} /></View>;
     }
     return (
       <View style={[style, st.dictateBar]}>
         <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><View style={st.dictateX}><View style={[st.dictateXBar, { transform: [{ rotate: "45deg" }] }]} /><View style={[st.dictateXBar, { transform: [{ rotate: "-45deg" }] }]} /></View></TouchableOpacity>
-        <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />
+        {dictation === "opening" ? <WaveBars color={C.muted} margin={10} /> : <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />}
         <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
       </View>
     );
