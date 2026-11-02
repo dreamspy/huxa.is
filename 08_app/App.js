@@ -30,7 +30,9 @@ const APP_VERSION = "0.4.9";
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
 // Level graph: one bar per LEVEL_MS of audio, newest at the right edge, scrolled left between samples
 const LEVEL_MS = 70, LEVEL_PITCH = 6, LEVEL_BAR_W = 3, LEVEL_MIN_H = 4, LEVEL_MAX_H = 26;
-const MAX_RECORD_MS = 5 * 60 * 1000; // a recording stops itself here and is transcribed
+// After MAX_RECORD_MS the bar asks "Still talking?" for PROMPT_S seconds while recording continues;
+// no answer stops and transcribes, Yes grants another MAX_RECORD_MS
+const MAX_RECORD_MS = 5 * 60 * 1000, PROMPT_S = 10;
 // Waiting wave (mic opening, transcribing) is a CSS animation: it keeps moving while the main
 // thread is busy handing over the microphone, which a canvas loop cannot.
 const WAVE_PERIOD_S = 1.2, WAVE_STAGGER_S = 0.06, WAVE_BARS = 120;
@@ -202,6 +204,10 @@ function makeStyles(C) {
     dictateXBar: { position: "absolute", width: 16, height: 2.5, borderRadius: 1.5, backgroundColor: C.text },
     dictateStop: { width: 13, height: 13, borderRadius: 3, backgroundColor: C.text },
     dictateHint: { color: C.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
+    dictatePrompt: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginHorizontal: 10 },
+    dictatePromptText: { color: C.text, fontSize: 14, fontWeight: "600" },
+    dictatePromptBtn: { backgroundColor: C.accent, borderRadius: 15, paddingVertical: 6, paddingHorizontal: 14 },
+    dictatePromptBtnText: { color: C.text, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
     confirmOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
     confirmBox: { backgroundColor: C.surface, borderRadius: 15, padding: 20, width: "100%", maxWidth: 340 },
     confirmTitle: { color: C.text, fontSize: 16, fontWeight: "600", marginBottom: 8 },
@@ -353,6 +359,7 @@ function AppContent() {
   var _cp = useState(DEFAULT_PROFILE), colorProfile = _cp[0], setColorProfile = _cp[1];
 
   var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "opening" | "recording" | "transcribing"
+  var _dc3 = useState(null), dictationPrompt = _dc3[0], setDictationPrompt = _dc3[1]; // seconds left to answer "Still talking?"
   var recorderRef = useRef(null);
   var levelCanvasRef = useRef(null);
   var _ql = useState(null), quickLogged = _ql[0], setQuickLogged = _ql[1]; // { event, offline } shown on the home screen after a quick log
@@ -471,6 +478,8 @@ function AppContent() {
         stream.getTracks().forEach(function (t) { t.stop(); });
         if (rec.raf) cancelAnimationFrame(rec.raf);
         clearTimeout(rec.limit);
+        clearInterval(rec.countdown);
+        setDictationPrompt(null);
         if (audioCtx) audioCtx.close();
         recorderRef.current = null;
         if (rec.cancelled) { setDictation(null); return; }
@@ -478,7 +487,7 @@ function AppContent() {
       };
       setDictation("recording");
       recorder.start();
-      rec.limit = setTimeout(function () { showToastMsg("Stopped after 5 minutes", "error"); stopDictation(false); }, MAX_RECORD_MS);
+      armRecordingLimit(rec);
     }).catch(function (err) {
       if (audioCtx) audioCtx.close();
       if (rec.cancelled) return;
@@ -486,6 +495,27 @@ function AppContent() {
       setDictation(null);
       showToastMsg(err && err.name === "NotAllowedError" ? "Microphone access denied" : "Microphone unavailable", "error");
     });
+  }
+
+  function armRecordingLimit(rec) {
+    rec.limit = setTimeout(function () {
+      var left = PROMPT_S;
+      setDictationPrompt(left);
+      rec.countdown = setInterval(function () {
+        left -= 1;
+        if (left > 0) { setDictationPrompt(left); return; }
+        clearInterval(rec.countdown);
+        stopDictation(false);
+      }, 1000);
+    }, MAX_RECORD_MS);
+  }
+
+  function keepTalking() {
+    var rec = recorderRef.current;
+    if (!rec) return;
+    clearInterval(rec.countdown);
+    setDictationPrompt(null);
+    armRecordingLimit(rec);
   }
 
   function stopDictation(cancel) {
@@ -552,7 +582,13 @@ function AppContent() {
     return (
       <View style={[style, st.dictateBar]}>
         <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><View style={st.dictateX}><View style={[st.dictateXBar, { transform: [{ rotate: "45deg" }] }]} /><View style={[st.dictateXBar, { transform: [{ rotate: "-45deg" }] }]} /></View></TouchableOpacity>
-        {dictation === "opening" ? <WaveBars color={C.muted} margin={10} /> : <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />}
+        {dictation === "opening" ? <WaveBars color={C.muted} margin={10} /> :
+          dictationPrompt !== null ? (
+            <View style={st.dictatePrompt}>
+              <Text style={st.dictatePromptText}>Still talking? {dictationPrompt}</Text>
+              <TouchableOpacity style={st.dictatePromptBtn} onPress={keepTalking}><Text style={st.dictatePromptBtnText}>Yes</Text></TouchableOpacity>
+            </View>
+          ) : <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />}
         <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
       </View>
     );
