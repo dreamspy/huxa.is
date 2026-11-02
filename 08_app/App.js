@@ -77,6 +77,7 @@ var QUERY_EFFORTS = [
 function makeStyles(C) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: 20 },
+    scroll: { width: "100%" },
     scrollContent: { alignItems: "center", paddingBottom: 40, width: "100%" },
     title: { fontSize: 28, color: C.text, fontWeight: "300", marginTop: 20, marginBottom: 20, letterSpacing: 2 },
     label: { fontSize: 14, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 15 },
@@ -1121,7 +1122,7 @@ function AppContent() {
   if (screen === "diary-summary") {
     return (
       <SafeAreaView style={st.container}>
-        <ScrollView contentContainerStyle={st.scrollContent}>
+        <ScrollView style={st.scroll} contentContainerStyle={st.scrollContent}>
           <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Diary</Text>
           <View style={st.datePickerRow}>
@@ -1163,7 +1164,7 @@ function AppContent() {
   if (screen === "diary-bulk-scales") {
     return (
       <SafeAreaView style={st.container}>
-        <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={st.scroll} contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
           <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Rate Your Day</Text>
           {SCALE_QUESTIONS.map(function (q) {
@@ -1295,7 +1296,7 @@ function AppContent() {
   if (screen === "diary-review") {
     return (
       <SafeAreaView style={st.container}>
-        <ScrollView contentContainerStyle={st.scrollContent}>
+        <ScrollView style={st.scroll} contentContainerStyle={st.scrollContent}>
           <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Review Your Diary</Text>
           {SCALE_QUESTIONS.concat(TEXT_QUESTIONS).map(function (q) {
