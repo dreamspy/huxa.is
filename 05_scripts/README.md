@@ -103,3 +103,19 @@ cd /opt/huxa-dev/<topic> && /opt/huxa/05_scripts/preview.sh up    # prints the U
 /opt/huxa/05_scripts/preview.sh list
 /opt/huxa/05_scripts/preview.sh down <topic>                       # stops the backend, deletes the preview data
 ```
+
+### server_ship_setup.sh
+
+One-time server setup for deploying from the box: installs `04_infrastructure/sudo/huxa-activate` to `/usr/local/sbin/` and the sudoers rule that lets `huxadev` run it, nothing else, as root. Re-run after changing `huxa-activate`.
+
+```bash
+ssh huxa 'sudo bash -s' < 05_scripts/server_ship_setup.sh
+```
+
+### deploy.sh
+
+Runs on the server as `huxadev` from a clean `/opt/huxa` on main. Builds the web app with a cleared Metro cache, commits `08_app/dist` if it changed, installs backend requirements, refreshes the preview unit, runs the root half (`huxa-activate`: nginx sites, reload, backend restart) through sudo, pushes main and checks `/health`. `fab deploy` on the Mac pushes and calls it; the phone workflow's "ship it" calls it directly.
+
+```bash
+cd /opt/huxa && 05_scripts/deploy.sh
+```

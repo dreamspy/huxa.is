@@ -1,0 +1,1 @@
+huxadev ALL=(root) NOPASSWD: /usr/local/sbin/huxa-activate

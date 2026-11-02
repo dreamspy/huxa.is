@@ -92,13 +92,18 @@ Requires Rust/Cargo and the Tauri CLI (`cargo install tauri-cli`). The installer
 fab deploy
 ```
 
-This runs the full pipeline:
-1. Builds Expo web (`08_app/dist/`)
+Pushes `main`, then runs `05_scripts/deploy.sh` on the server, which:
+1. Builds Expo web (`08_app/dist/`) on the server, with a cleared Metro cache
 2. Commits the build if it changed
-3. Pushes to `origin/main`
-4. Pulls on the server
-5. Copies nginx config and reloads
-6. Restarts the backend service
+3. Installs backend requirements
+4. Installs the nginx sites, reloads nginx and restarts the backend (root half via `huxa-activate`)
+5. Pushes `main`
+
+The task ends with a `git pull` so the Mac gets the dist commit. Nothing is built on the Mac.
+
+### From the phone
+
+Features can also be built, previewed and shipped entirely from the phone: `01_docs/phone-workflow.md`.
 
 ### Other Commands
 
@@ -111,8 +116,8 @@ fab restart    # Restart without deploying new code
 ### Manual Deploy (if Fabric is unavailable)
 
 ```bash
-cd 08_app && npm run build:web && cd ..
-git add 08_app/dist && git commit -m "Build web dist"
 git push origin main
-ssh huxa "cd /opt/huxa && sudo git pull origin main && sudo systemctl restart huxa"
+ssh huxadev@huxa "cd /opt/huxa && git pull --ff-only && 05_scripts/deploy.sh"
+git pull --ff-only
 ```
+

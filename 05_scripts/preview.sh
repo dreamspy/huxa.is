@@ -66,7 +66,7 @@ ENV
 
         echo "building web app for $url"
         rm -rf "$dir/www"
-        (cd "$wt/08_app" && CI=1 EXPO_PUBLIC_API_BASE="$url" npx expo export --platform web --output-dir "$dir/www" >/dev/null)
+        (cd "$wt/08_app" && CI=1 EXPO_PUBLIC_API_BASE="$url" npx expo export --platform web --output-dir "$dir/www" --clear >/dev/null)
 
         systemctl --user restart "huxa-preview@$topic"
         for _ in $(seq 1 20); do

@@ -73,11 +73,42 @@
 | `08_app/App.js` | Expo app (main source file) |
 | `08_app/dist/` | Expo web build (served by Nginx in production) |
 | `fabfile.py` | Fabric deploy commands |
+| `05_scripts/deploy.sh` | Deploy from the server's checkout (build, activate, push); `fab deploy` calls it |
+| `05_scripts/preview.sh` | Serve a server worktree at `https://dev-<topic>.huxa.is` |
+| `04_infrastructure/nginx/huxa-preview.conf` | Nginx site for previews (static, regex server name) |
+| `04_infrastructure/systemd/huxa-preview@.service` | Preview backend, systemd user unit for `huxadev` |
+| `04_infrastructure/sudo/` | Root half of a deploy and the sudoers rule for `huxadev` |
 | `CHANGELOG.md` | Version history and release notes |
 
 ## Worktree
 
 Base branch: main
+
+Worktrees run in two places: on the Mac (main checkout `~/Programming/huxa.is`) and on the server (main checkout `/opt/huxa`, user `huxadev`, driven from the phone through Remote Control). Tell them apart by the checkout path.
+
+### On the server
+
+Worktree path is `/opt/huxa-dev/<topic>`, not a sibling of the checkout:
+    git -C /opt/huxa worktree add /opt/huxa-dev/<topic> -b <feat|fix>/<topic> main
+Bootstrap (run from inside the worktree):
+    cp -al /opt/huxa/08_app/node_modules 08_app/node_modules
+    ln -s /opt/huxa/02_backend/venv 02_backend/venv
+Dev server: none. Previews are static builds served by nginx. From inside the worktree:
+    /opt/huxa/05_scripts/preview.sh up
+prints `https://dev-<topic>.huxa.is`. Run it again after every change the user should see; a build takes about half a minute and nothing hot-reloads. The preview backend runs on a copy of production data taken on the first `up`, with the production token. Give the user the URL in the Test it section.
+Tests, safe beside other sessions: none, there is no test suite. Check the preview on the phone or with curl against the URL.
+Tests, full (integrator only): none.
+Do not: write under `/var/lib/huxa`; edit or commit in `/opt/huxa` except in the Ship step; install into `/opt/huxa/08_app/node_modules` or the shared venv (give the worktree its own venv if a backend dependency changes); run `deploy.sh` from a worktree.
+
+Ship. On the server there is one session, so when the user says ship, merge or deploy, this session does the integrator's job itself instead of handing over (keep the handover block at the end of the reply all the same):
+1. Ask which version digit to bump. On the branch, set `APP_VERSION` in `08_app/App.js`, add the `CHANGELOG.md` section, commit as "Bump to vX.Y.Z".
+2. In `/opt/huxa`: `git merge --no-ff <branch> -m "Merge <branch>: <what it does> (vX.Y.Z)"`.
+3. `05_scripts/deploy.sh`. It builds the web app, commits dist, installs requirements, restarts the backend through sudo and pushes main.
+4. `/opt/huxa/05_scripts/preview.sh down <topic>`, then `git worktree remove /opt/huxa-dev/<topic>` and `git branch -d <branch>`.
+5. Tell the user to reload huxa.is and what to check there.
+
+### On the Mac
+
 Bootstrap a fresh worktree (run from inside it; `../huxa.is` is the main checkout):
     cp -Rc ../huxa.is/08_app/node_modules 08_app/node_modules
     ln -s ../../huxa.is/02_backend/venv 02_backend/venv
@@ -96,3 +127,4 @@ With `HUXA_AUTH_TOKEN` unset (as above, and as `dev_server.sh` does) no token is
 Tests, safe beside other sessions: none, there is no test suite. Check the change in the browser on your own port.
 Tests, full (integrator only): none.
 Do not: run `fab` deploy tasks or build `08_app/dist` from a worktree; touch `/var/lib/huxa` or the synced `~/HuXa-data`; install into the main checkout's `node_modules` or `venv`.
+Deploying from the Mac: `fab deploy` pushes main and runs `05_scripts/deploy.sh` on the server, which builds the web app there and pushes the dist commit back; the task ends with a `git pull`.

@@ -68,29 +68,37 @@ Tailscale is installed on both the server and the dev Mac. It creates a private 
 
 ## Code Deployment
 
-Deployment is automated with [Fabric](https://www.fabfile.org/) via `fabfile.py` in the project root. Requires `fabric` installed locally (`pipx install fabric`).
+Deploys run on the server itself, from its checkout in `/opt/huxa`, by `05_scripts/deploy.sh` as the `huxadev` user. There are two ways to trigger one.
 
-### Quick Deploy
+### From the Mac
 
 ```bash
 fab deploy
 ```
 
-This:
-1. Builds the Expo web frontend (`08_app/dist/`)
-2. Commits the build if changed
-3. Pushes to `origin/main`
-4. Pulls on the server
-5. Installs Python dependencies from `requirements.txt`
-6. Ensures data directories exist (e.g. `/var/lib/huxa/attachments/`)
-7. Copies nginx config and reloads
-8. Restarts the huxa service
+Requires `fabric` installed locally (`pipx install fabric`). The task pushes `main`, runs `git pull` and `05_scripts/deploy.sh` on the server, and pulls the resulting dist commit back.
+
+### From the phone
+
+Say "ship it" to the Claude Code session on the server; see `phone-workflow.md`. It bumps the version, updates the changelog, merges the feature branch and runs `deploy.sh`.
+
+### What deploy.sh does
+
+1. Refuses unless run from `/opt/huxa` on a clean `main`
+2. Builds the Expo web frontend into `08_app/dist/` (`--clear`, because preview builds share the Metro cache)
+3. Commits the build if it changed
+4. Installs Python dependencies from `requirements.txt` into the shared venv
+5. Refreshes the `huxa-preview@` user unit
+6. Runs `/usr/local/sbin/huxa-activate` through sudo: ensures `/var/lib/huxa/attachments/`, installs both nginx sites, `nginx -t`, reloads nginx, restarts `huxa`
+7. Pushes `main` and checks `https://huxa.is/health`
+
+`huxa-activate` is the only command `huxadev` may run as root (`/etc/sudoers.d/huxadev`), installed once by `05_scripts/server_ship_setup.sh`.
 
 ### Available Commands
 
 | Command | Description |
 |---|---|
-| `fab deploy` | Build web, push, pull, sync nginx, restart |
+| `fab deploy` | Push, build and activate on the server, pull back |
 | `fab status` | Show huxa service status |
 | `fab logs` | Tail last 50 log lines (`--lines=N` for more) |
 | `fab restart` | Restart the service |
@@ -100,11 +108,8 @@ This:
 If needed, SSH in and run:
 
 ```bash
-cd /opt/huxa
-git pull origin main
-sudo cp 04_infrastructure/nginx/huxa.conf /etc/nginx/sites-available/huxa
-sudo nginx -t && sudo systemctl reload nginx
-sudo systemctl restart huxa
+ssh huxadev@huxa
+cd /opt/huxa && git pull --ff-only && 05_scripts/deploy.sh
 ```
 
 The repository contains application code and the web build. Data, logs, and configuration are external to the repo.
