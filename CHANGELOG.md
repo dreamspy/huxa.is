@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.8 — 2026-11-02
+
+- Hidden Tetris game: long-press the version number on the home screen. Runs entirely on the device, needs no token, and keeps the best score on the device (`08_app/Tetris.js`)
+
 ## v0.4.7 — 2026-11-02
 
 - Diary summary, Rate Your Day and Review screens use the full screen width, with the scroll area reaching the screen edge
