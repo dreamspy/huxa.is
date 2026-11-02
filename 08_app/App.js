@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import * as SystemUI from "expo-system-ui";
 import * as ImagePicker from "expo-image-picker";
+import Tetris from "./Tetris";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
@@ -146,7 +147,8 @@ function makeStyles(C) {
     reviewValue: { color: C.text, fontSize: 14 },
     settingsBtn: { position: "absolute", bottom: 60 },
     settingsBtnText: { color: C.muted, fontSize: 12 },
-    version: { position: "absolute", bottom: 30, color: C.muted, fontSize: 12 },
+    versionBtn: { position: "absolute", bottom: 30 },
+    version: { color: C.muted, fontSize: 12 },
     toast: { position: "absolute", bottom: 100, borderRadius: 25, paddingVertical: 10, paddingHorizontal: 20 },
     toastSuccess: { backgroundColor: C.success },
     toastError: { backgroundColor: C.error },
@@ -742,7 +744,7 @@ function AppContent() {
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
         </View>
         <TouchableOpacity style={st.settingsBtn} onPress={function () { setTokenInput(token); setScreen("token"); }}><Text style={st.settingsBtnText}>Settings</Text></TouchableOpacity>
-        <Text style={st.version}>v{APP_VERSION}</Text>
+        <TouchableOpacity style={st.versionBtn} activeOpacity={1} onLongPress={function () { setScreen("tetris"); }}><Text style={st.version}>v{APP_VERSION}</Text></TouchableOpacity>
         {renderToast()}
         {renderConfirm()}
       </SafeAreaView>
@@ -1445,6 +1447,16 @@ function AppContent() {
         </KeyboardAvoidingView>
         {renderToast()}
         {renderConfirm()}
+      </SafeAreaView>
+    );
+  }
+
+  // --- TETRIS (hidden, no token needed) ---
+  if (screen === "tetris") {
+    return (
+      <SafeAreaView style={st.container}>
+        <StatusBar barStyle={C.statusBar} />
+        <Tetris colors={C} styles={st} onExit={function () { setScreen("idle"); }} />
       </SafeAreaView>
     );
   }

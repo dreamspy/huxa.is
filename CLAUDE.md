@@ -71,6 +71,7 @@
 | `06_config/config.example.json` | Configuration template |
 | `07_examples/events.example.jsonl` | Example event data |
 | `08_app/App.js` | Expo app (main source file) |
+| `08_app/Tetris.js` | Hidden Tetris game, opened by long-pressing the version number on the home screen; runs without a token |
 | `08_app/dist/` | Expo web build (served by Nginx in production) |
 | `fabfile.py` | Fabric deploy commands |
 | `05_scripts/deploy.sh` | Deploy from the server's checkout (build, activate, push); `fab deploy` calls it |

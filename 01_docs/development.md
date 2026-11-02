@@ -47,9 +47,9 @@ API keys (e.g. `OPENAI_API_KEY`) are loaded from `02_backend/.env`.
 
 ## Making Changes
 
-### Frontend (08_app/App.js)
+### Frontend (08_app/)
 
-1. Edit `08_app/App.js`
+1. Edit `08_app/App.js` (the hidden Tetris game is in `08_app/Tetris.js`; long-press the version number on the home screen to open it, no token needed)
 2. Changes hot-reload automatically in Expo (both simulator and web)
 3. Test the change in the relevant screens
 
