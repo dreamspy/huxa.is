@@ -29,8 +29,16 @@ const APP_VERSION = "0.4.9";
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
 const LEVEL_BARS = 40;
-function micIcon(color) {
-  return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>');
+function MicIcon(props) {
+  var c = props.color;
+  return (
+    <View style={{ width: 22, height: 22, alignItems: "center" }}>
+      <View style={{ width: 8, height: 13, borderRadius: 4, backgroundColor: c }} />
+      <View style={{ position: "absolute", top: 7, width: 16, height: 10, borderWidth: 2, borderTopWidth: 0, borderColor: c, borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }} />
+      <View style={{ position: "absolute", top: 17, width: 2, height: 3, backgroundColor: c }} />
+      <View style={{ position: "absolute", top: 20, width: 10, height: 2, borderRadius: 1, backgroundColor: c }} />
+    </View>
+  );
 }
 
 const COLOR_PROFILES = {
@@ -465,7 +473,7 @@ function AppContent() {
     return (
       <View style={st.dictateWrap}>
         <TextInput {...props} style={[props.style, { paddingRight: 48 }]} />
-        <TouchableOpacity style={st.dictateMic} onPress={function () { startDictation(onText); }}><Image source={{ uri: micIcon(C.muted) }} style={{ width: 22, height: 22 }} /></TouchableOpacity>
+        <TouchableOpacity style={st.dictateMic} onPress={function () { startDictation(onText); }}><MicIcon color={C.muted} /></TouchableOpacity>
       </View>
     );
   }
