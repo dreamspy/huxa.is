@@ -2,28 +2,39 @@
 
 Features for HuXa can be requested, tested and shipped from the phone. Claude Code runs on the server inside tmux as `huxadev`, the Claude app drives it through Remote Control, every feature gets a preview at `https://dev-<topic>.huxa.is`, and "ship it" merges and deploys on the same box.
 
-## Start or resume the session
+## Start or resume the server
 
-From any terminal (the Mac, or an SSH app on the phone over Tailscale):
+Remote Control runs as a server: one process in tmux, and the Claude app starts as many sessions against it as you like. One command starts or restarts it, tmux session included:
 
 ```bash
-ssh huxadev@huxa
-tmux attach -t huxa || tmux new -s huxa
-cd /opt/huxa && claude --add-dir /opt/huxa-dev
+ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh            # start if not running
+ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh restart
+ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh status
 ```
 
-Inside Claude run `/remote-control`. Open the Claude app, Code tab, and the session is listed. Detach tmux with Ctrl-b then d; the session keeps running until the box reboots.
+It runs `claude remote-control --spawn=same-dir --permission-mode acceptEdits --remote-control-session-name-prefix huxa` in `/opt/huxa`, so sessions appear in the app as `huxa-...`. `acceptEdits` lets sessions edit files without asking and still asks before shell commands; edit the script if you prefer `auto`. To watch the server: `ssh huxadev@huxa`, then `tmux attach -t huxa`, detach with Ctrl-b then d.
 
-`--add-dir /opt/huxa-dev` puts the worktrees in scope so edits there do not prompt.
+One-time, so sessions may edit the worktrees under `/opt/huxa-dev` without a prompt: in `/home/huxadev/.claude/settings.json` add
+
+```json
+{ "permissions": { "additionalDirectories": ["/opt/huxa-dev"] } }
+```
+
+## Sessions
+
+The model is the one from the Mac: one integrator session, any number of feature sessions, all in the Claude app under the huxa server.
+
+- **Integrator.** The session pre-created when the server starts. It lives in `/opt/huxa` and only merges and deploys. Keep it; never ask it to implement.
+- **Feature sessions.** Start a new session from the app for each feature and open with `/worktree-feature <what you want>`. The skill creates the worktree in `/opt/huxa-dev/<topic>` and the preview. Keep that session for follow-ups until the feature is shipped, then let it go.
 
 ## The loop
 
-1. Ask: `/worktree-feature <what you want>`. The reply ends with a **Test it** section carrying the preview URL.
+1. In a new session: `/worktree-feature <what you want>`. The reply ends with **Test it** carrying the preview URL and a **Handover** block.
 2. Test on the phone at `https://dev-<topic>.huxa.is`. The token is the production one. The preview runs on a copy of the production data taken when it was first built, so anything logged there stays out of production.
 3. Follow up in the same session until it is right. Each change is rebuilt into the preview, about half a minute.
-4. Say `ship it`. Claude asks which version digit to bump, updates the changelog, merges into main, runs `05_scripts/deploy.sh`, removes the preview and the worktree, and tells you to reload huxa.is.
+4. In the integrator session: `ship <topic>`, or paste the handover block. It asks which version digit to bump, updates the changelog, merges into main, runs `05_scripts/deploy.sh`, removes the preview and the worktree, and tells you to reload huxa.is. One feature at a time.
 
-The rules Claude follows for this are the Worktree section of `CLAUDE.md`.
+The rules the sessions follow are the Worktree section of `CLAUDE.md`.
 
 ## Housekeeping
 
@@ -33,7 +44,7 @@ The rules Claude follows for this are the Worktree section of `CLAUDE.md`.
 git -C /opt/huxa worktree list
 ```
 
-Idle previews cost nothing but disk. A rebooted server restarts preview backends on its own (the dev user lingers), but the tmux session and Claude are gone; start them again as above.
+Idle previews cost nothing but disk. A rebooted server restarts preview backends on its own (the dev user lingers), but the tmux session and the Remote Control server are gone; start them again as above. Memory is the limit on parallel sessions: each one takes a few hundred MB and a build peaks around 400 MB, so four or five at once is comfortable on the t3.medium.
 
 ## Deploying from the Mac still works
 

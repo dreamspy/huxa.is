@@ -119,3 +119,7 @@ Runs on the server as `huxadev` from a clean `/opt/huxa` on main. Builds the web
 ```bash
 cd /opt/huxa && 05_scripts/deploy.sh
 ```
+
+### remote_control.sh
+
+Runs on the server as `huxadev`. Keeps the Claude Code Remote Control server alive inside the `huxa` tmux session: `start` (default) creates the tmux session if needed and launches `claude remote-control` in same-dir spawn mode with the `huxa` name prefix, `restart` and `stop` do what they say, `status` reports both. From the Mac: `ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh restart`.

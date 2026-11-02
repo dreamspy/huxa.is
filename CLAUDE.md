@@ -100,7 +100,7 @@ Tests, safe beside other sessions: none, there is no test suite. Check the previ
 Tests, full (integrator only): none.
 Do not: write under `/var/lib/huxa`; edit or commit in `/opt/huxa` except in the Ship step; install into `/opt/huxa/08_app/node_modules` or the shared venv (give the worktree its own venv if a backend dependency changes); run `deploy.sh` from a worktree.
 
-Ship. On the server there is one session, so when the user says ship, merge or deploy, this session does the integrator's job itself instead of handing over (keep the handover block at the end of the reply all the same):
+Ship. Sessions on the server are spawned from the Claude app by `claude remote-control` running in `/opt/huxa`: the pre-created session there is the integrator, every other session is a feature session that hands over as the skill describes. The integrator is told `ship <topic>`, with or without the handover block; without it, the branch is the one checked out in `/opt/huxa-dev/<topic>` (`git worktree list`) and the merge subject is written from its commits. A feature session told to ship may do these steps itself when it is the only session. Steps:
 1. Ask which version digit to bump. On the branch, set `APP_VERSION` in `08_app/App.js`, add the `CHANGELOG.md` section, commit as "Bump to vX.Y.Z".
 2. In `/opt/huxa`: `git merge --no-ff <branch> -m "Merge <branch>: <what it does> (vX.Y.Z)"`.
 3. `05_scripts/deploy.sh`. It builds the web app, commits dist, installs requirements, restarts the backend through sudo and pushes main.
