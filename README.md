@@ -123,6 +123,16 @@ HuXa is designed so that migrating from JSONL to PostgreSQL is straightforward w
 
 See [01_docs/development.md](01_docs/development.md) for the full dev workflow — running locally, testing in browser/simulator/iPhone, making changes, and deploying.
 
+### From the phone
+
+Features can be requested, previewed and shipped without the Mac. Claude Code runs on the server as a Remote Control server inside tmux; the Claude app starts sessions against it. One integrator session merges and deploys, each feature gets its own session, worktree and preview at `https://dev-<topic>.huxa.is`.
+
+```bash
+ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh restart   # start or restart the server
+```
+
+Then in the app: new session, `/worktree-feature <what you want>`, test at the preview URL, and `ship <topic>` in the integrator session. Details in [01_docs/phone-workflow.md](01_docs/phone-workflow.md).
+
 ## Repository Structure
 
 ```
