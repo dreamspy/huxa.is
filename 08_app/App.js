@@ -943,11 +943,11 @@ function AppContent() {
         <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
         <View style={st.idleButtons}>
           <TouchableOpacity style={st.btn} onPress={function () { if (needsToken()) setScreen("token"); else setScreen("category"); }}><Text style={st.btnText}>Log</Text></TouchableOpacity>
-          {DICTATION_SUPPORTED && (dictation ? renderDictateBar([st.btn, st.btnSecondary, st.quickLogBar]) :
-            <TouchableOpacity style={[st.btn, st.btnSecondary, st.quickLogBtn]} onPress={function () { if (needsToken()) setScreen("token"); else { setQuickLogged(null); startDictation(quickLog); } }}><MicIcon color={C.text} /><Text style={st.btnText}>Quick log</Text></TouchableOpacity>)}
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else startDiary(todayStr()); }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={openHistory}><Text style={st.btnText}>History</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else { setQueryText(""); setQueryAnswer(""); setScreen("query"); } }}><Text style={st.btnText}>Ask HuXa</Text></TouchableOpacity>
+          {DICTATION_SUPPORTED && (dictation ? renderDictateBar([st.btn, st.btnSecondary, st.quickLogBar]) :
+            <TouchableOpacity style={[st.btn, st.btnSecondary, st.quickLogBtn]} onPress={function () { if (needsToken()) setScreen("token"); else { setQuickLogged(null); startDictation(quickLog); } }}><MicIcon color={C.text} /><Text style={st.btnText}>Quick log</Text></TouchableOpacity>)}
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
         </View>
         {quickLogged && (
