@@ -28,7 +28,8 @@ const APP_VERSION = "0.4.9";
 // Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
-const LEVEL_BARS = 160; // more than fit in any box; the graph is right-aligned and clips the oldest on the left
+// Level graph: one bar per LEVEL_MS of audio, newest at the right edge, scrolled left between samples
+const LEVEL_MS = 70, LEVEL_PITCH = 6, LEVEL_BAR_W = 3, LEVEL_MIN_H = 4, LEVEL_MAX_H = 26;
 function MicIcon(props) {
   var c = props.color;
   return (
@@ -176,8 +177,6 @@ function makeStyles(C) {
     dictateIconBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.surface, alignItems: "center", justifyContent: "center" },
     dictateX: { color: C.text, fontSize: 15, fontWeight: "600" },
     dictateStop: { width: 13, height: 13, borderRadius: 3, backgroundColor: C.text },
-    dictateLevels: { flex: 1, height: 28, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginHorizontal: 10, overflow: "hidden" },
-    dictateLevelBar: { width: 3, borderRadius: 2, marginHorizontal: 1.5, backgroundColor: C.text },
     dictateHint: { color: C.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
     confirmOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
     confirmBox: { backgroundColor: C.surface, borderRadius: 15, padding: 20, width: "100%", maxWidth: 340 },
@@ -330,8 +329,8 @@ function AppContent() {
   var _cp = useState(DEFAULT_PROFILE), colorProfile = _cp[0], setColorProfile = _cp[1];
 
   var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "recording" | "transcribing"
-  var _dc2 = useState(null), dictationLevels = _dc2[0], setDictationLevels = _dc2[1];
   var recorderRef = useRef(null);
+  var levelCanvasRef = useRef(null);
   var osScheme = useColorScheme();
   var C = useMemo(function () { return getColors(colorProfile, osScheme); }, [colorProfile, osScheme]);
   var st = useMemo(function () { return makeStyles(C); }, [C]);
@@ -385,32 +384,53 @@ function AppContent() {
       var mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0];
       var recorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
       var chunks = [];
-      var rec = { recorder: recorder, cancelled: false, meter: null };
+      var rec = { recorder: recorder, cancelled: false, raf: null };
       if (audioCtx) {
         var analyser = audioCtx.createAnalyser();
         analyser.fftSize = 512;
         audioCtx.createMediaStreamSource(stream).connect(analyser);
         var buf = new Uint8Array(analyser.fftSize);
-        rec.meter = setInterval(function () {
+        var samples = new Array(400).fill(0); // newest first
+        var lastSample = performance.now();
+        var smoothed = 0;
+        var barColor = C.text;
+        var draw = function (now) {
+          rec.raf = requestAnimationFrame(draw);
           analyser.getByteTimeDomainData(buf);
           var sum = 0;
           for (var i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; sum += v * v; }
           var level = Math.min(1, Math.sqrt(sum / buf.length) * 4);
-          setDictationLevels(function (prev) { return (prev || []).slice(1).concat(level); });
-        }, 70);
+          smoothed = level > smoothed ? level : smoothed * 0.7 + level * 0.3; // quick attack, soft decay
+          while (now - lastSample >= LEVEL_MS) { samples.unshift(smoothed); samples.pop(); lastSample += LEVEL_MS; }
+          var canvas = levelCanvasRef.current;
+          if (!canvas) return;
+          var dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+          if (!w || !h) return;
+          if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+          var ctx = canvas.getContext("2d");
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = barColor;
+          var x = w - ((now - lastSample) / LEVEL_MS) * LEVEL_PITCH; // newest bar slides in from the right edge
+          for (var k = 0; k < samples.length && x + LEVEL_BAR_W > 0; k++, x -= LEVEL_PITCH) {
+            var bh = LEVEL_MIN_H + samples[k] * (LEVEL_MAX_H - LEVEL_MIN_H);
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, (h - bh) / 2, LEVEL_BAR_W, bh, 1.5); ctx.fill(); }
+            else ctx.fillRect(x, (h - bh) / 2, LEVEL_BAR_W, bh);
+          }
+        };
+        rec.raf = requestAnimationFrame(draw);
         audioCtx.resume();
       }
       recorder.ondataavailable = function (e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = function () {
         stream.getTracks().forEach(function (t) { t.stop(); });
-        clearInterval(rec.meter);
+        if (rec.raf) cancelAnimationFrame(rec.raf);
         if (audioCtx) audioCtx.close();
         recorderRef.current = null;
         if (rec.cancelled) { setDictation(null); return; }
         transcribeBlob(new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), onText);
       };
       recorderRef.current = rec;
-      setDictationLevels(new Array(LEVEL_BARS).fill(0));
       setDictation("recording");
       recorder.start();
     }).catch(function (err) {
@@ -460,9 +480,7 @@ function AppContent() {
       return (
         <View style={[props.style, st.dictateBar]}>
           <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><Text style={st.dictateX}>{"\u2715"}</Text></TouchableOpacity>
-          <View style={st.dictateLevels}>
-            {(dictationLevels || []).map(function (l, i) { return <View key={i} style={[st.dictateLevelBar, { height: 4 + Math.round(l * 22) }]} />; })}
-          </View>
+          <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />
           <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
         </View>
       );
