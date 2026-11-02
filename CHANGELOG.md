@@ -2,6 +2,11 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.6 — 2026-11-02
+
+- The daily diary no longer asks about sleep quality. Sleep is logged as Sleep events instead
+- Ask HuXa knows that older diary entries still carry a 1-10 sleep rating and that newer sleep data lives in Sleep events
+
 ## v0.4.5 — 2026-11-02
 
 - Version bump only, no functional changes
