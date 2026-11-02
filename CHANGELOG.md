@@ -2,6 +2,19 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.8 — 2026-11-02
+
+- Hidden Tetris game: long-press the version number on the home screen. Runs entirely on the device, needs no token, and keeps the best score on the device (`08_app/Tetris.js`)
+
+## v0.4.7 — 2026-11-02
+
+- Diary summary, Rate Your Day and Review screens use the full screen width, with the scroll area reaching the screen edge
+
+## v0.4.6 — 2026-11-02
+
+- The daily diary no longer asks about sleep quality. Sleep is logged as Sleep events instead
+- Ask HuXa knows that older diary entries still carry a 1-10 sleep rating and that newer sleep data lives in Sleep events
+
 ## v0.4.5 — 2026-11-02
 
 - Version bump only, no functional changes

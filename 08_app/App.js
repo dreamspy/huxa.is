@@ -20,10 +20,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import * as SystemUI from "expo-system-ui";
 import * as ImagePicker from "expo-image-picker";
+import Tetris from "./Tetris";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.4.5";
+const APP_VERSION = "0.4.8";
 
 const COLOR_PROFILES = {
   dark: {
@@ -77,6 +78,8 @@ var QUERY_EFFORTS = [
 function makeStyles(C) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: 20 },
+    scroll: { alignSelf: "stretch", marginHorizontal: -20 },
+    scrollInset: { paddingHorizontal: 20 },
     scrollContent: { alignItems: "center", paddingBottom: 40, width: "100%" },
     title: { fontSize: 28, color: C.text, fontWeight: "300", marginTop: 20, marginBottom: 20, letterSpacing: 2 },
     label: { fontSize: 14, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 15 },
@@ -146,7 +149,8 @@ function makeStyles(C) {
     reviewValue: { color: C.text, fontSize: 14 },
     settingsBtn: { position: "absolute", bottom: 60 },
     settingsBtnText: { color: C.muted, fontSize: 12 },
-    version: { position: "absolute", bottom: 30, color: C.muted, fontSize: 12 },
+    versionBtn: { position: "absolute", bottom: 30 },
+    version: { color: C.muted, fontSize: 12 },
     toast: { position: "absolute", bottom: 100, borderRadius: 25, paddingVertical: 10, paddingHorizontal: 20 },
     toastSuccess: { backgroundColor: C.success },
     toastError: { backgroundColor: C.error },
@@ -193,7 +197,6 @@ function WebDateInput(props) {
 }
 
 const DIARY_QUESTIONS = [
-  { key: "sleep", label: "Sleep Quality", question: "How was your sleep quality last night?", type: "scale", min: 1, max: 10 },
   { key: "headaches", label: "Headaches", question: "How are your headaches today?", type: "scale", min: 1, max: 10 },
   { key: "energy", label: "Energy", question: "How is your energy level today?", type: "scale", min: 1, max: 10 },
   { key: "gut", label: "Gut Status", question: "How is your gut feeling today?", type: "text" },
@@ -743,7 +746,7 @@ function AppContent() {
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
         </View>
         <TouchableOpacity style={st.settingsBtn} onPress={function () { setTokenInput(token); setScreen("token"); }}><Text style={st.settingsBtnText}>Settings</Text></TouchableOpacity>
-        <Text style={st.version}>v{APP_VERSION}</Text>
+        <TouchableOpacity style={st.versionBtn} activeOpacity={1} onLongPress={function () { setScreen("tetris"); }}><Text style={st.version}>v{APP_VERSION}</Text></TouchableOpacity>
         {renderToast()}
         {renderConfirm()}
       </SafeAreaView>
@@ -1121,7 +1124,7 @@ function AppContent() {
   if (screen === "diary-summary") {
     return (
       <SafeAreaView style={st.container}>
-        <ScrollView contentContainerStyle={st.scrollContent}>
+        <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollInset]}>
           <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Diary</Text>
           <View style={st.datePickerRow}>
@@ -1163,7 +1166,7 @@ function AppContent() {
   if (screen === "diary-bulk-scales") {
     return (
       <SafeAreaView style={st.container}>
-        <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollInset]} keyboardShouldPersistTaps="handled">
           <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Rate Your Day</Text>
           {SCALE_QUESTIONS.map(function (q) {
@@ -1295,7 +1298,7 @@ function AppContent() {
   if (screen === "diary-review") {
     return (
       <SafeAreaView style={st.container}>
-        <ScrollView contentContainerStyle={st.scrollContent}>
+        <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollInset]}>
           <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
           <Text style={st.label}>Review Your Diary</Text>
           {SCALE_QUESTIONS.concat(TEXT_QUESTIONS).map(function (q) {
@@ -1446,6 +1449,16 @@ function AppContent() {
         </KeyboardAvoidingView>
         {renderToast()}
         {renderConfirm()}
+      </SafeAreaView>
+    );
+  }
+
+  // --- TETRIS (hidden, no token needed) ---
+  if (screen === "tetris") {
+    return (
+      <SafeAreaView style={st.container}>
+        <StatusBar barStyle={C.statusBar} />
+        <Tetris colors={C} styles={st} onExit={function () { setScreen("idle"); }} />
       </SafeAreaView>
     );
   }
