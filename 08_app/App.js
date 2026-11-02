@@ -1396,7 +1396,7 @@ function AppContent() {
             </View>
             <TouchableOpacity style={{ marginTop: 20 }} onPress={function () {
               if (feedbackShowList) { setFeedbackShowList(false); return; }
-              if (!token) { showToastMsg("Set your token in Settings first", "error"); return; }
+              if (needsToken()) { showToastMsg("Set your token in Settings first", "error"); return; }
               fetch(API_BASE + "/reports", { headers: authHeaders() })
                 .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
                 .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); })
