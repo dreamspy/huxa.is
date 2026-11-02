@@ -26,6 +26,7 @@
 - Phase 1 auth is simple bearer token. An empty `HUXA_AUTH_TOKEN` disables auth (local dev only): `/health` reports `auth_required: false` and the app skips the token screen
 - Event categories are user-defined, stored in `/var/lib/huxa/categories.json`, managed in-app via `GET/PUT /categories` (add, toggle, reorder, delete). Historical events are unaffected by category changes; they store the type string directly.
 - `POST /query` has three effort tiers (`low`, `mid`, `high`, default `mid`) mapped to OpenAI models in `QUERY_MODELS` in `02_backend/app/main.py`. Measured speed and accuracy are in `02_backend/README.md`; re-run that benchmark before changing the tier models.
+- `POST /transcribe` takes a multipart audio clip and returns text via OpenAI (`TRANSCRIBE_MODEL` in `02_backend/app/main.py`). The app's Dictate button (compose, diary text answers, Ask HuXa) records with the browser's MediaRecorder and appends the result to the field; web only for now, native shows no button.
 - Categories can define structured fields (`scale` 1–10, `number`, `boolean`, `text`). Field values are stored in `event.metrics` keyed by field key. The diary is separate and stays hardcoded (rolling daily questions).
 
 ## Event Schema (v1)

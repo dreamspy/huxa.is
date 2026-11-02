@@ -25,6 +25,9 @@ var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-commu
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
 const APP_VERSION = "0.4.9";
+// Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
+// Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
+const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
 
 const COLOR_PROFILES = {
   dark: {
@@ -155,6 +158,11 @@ function makeStyles(C) {
     toastSuccess: { backgroundColor: C.success },
     toastError: { backgroundColor: C.error },
     toastText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+    dictateRow: { flexDirection: "row", width: "100%", gap: 8, marginTop: -4, marginBottom: 12, alignItems: "center" },
+    dictateBtn: { backgroundColor: C.surface, borderRadius: 25, paddingVertical: 8, paddingHorizontal: 16 },
+    dictateBtnActive: { backgroundColor: C.error },
+    dictateBtnText: { color: C.text, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
+    dictateHint: { color: C.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1, paddingVertical: 8 },
     confirmOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
     confirmBox: { backgroundColor: C.surface, borderRadius: 15, padding: 20, width: "100%", maxWidth: 340 },
     confirmTitle: { color: C.text, fontSize: 16, fontWeight: "600", marginBottom: 8 },
@@ -304,6 +312,10 @@ function AppContent() {
   var _cm = useState({}), composeMetrics = _cm[0], setComposeMetrics = _cm[1];
 
   var _cp = useState(DEFAULT_PROFILE), colorProfile = _cp[0], setColorProfile = _cp[1];
+
+  var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "recording" | "transcribing"
+  var _dc2 = useState(0), dictationSeconds = _dc2[0], setDictationSeconds = _dc2[1];
+  var recorderRef = useRef(null);
   var osScheme = useColorScheme();
   var C = useMemo(function () { return getColors(colorProfile, osScheme); }, [colorProfile, osScheme]);
   var st = useMemo(function () { return makeStyles(C); }, [C]);
@@ -344,6 +356,84 @@ function AppContent() {
   function showToastMsg(msg, type) {
     setToast({ msg: msg, type: type });
     setTimeout(function () { setToast(null); }, 3000);
+  }
+
+  // --- DICTATION ---
+  function startDictation(onText) {
+    if (recorderRef.current) return;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      // Safari records audio/mp4, Chrome and Firefox audio/webm; OpenAI accepts both
+      var mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0];
+      var recorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
+      var chunks = [];
+      var started = Date.now();
+      var rec = { recorder: recorder, cancelled: false };
+      rec.timer = setInterval(function () { setDictationSeconds(Math.floor((Date.now() - started) / 1000)); }, 500);
+      recorder.ondataavailable = function (e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = function () {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        clearInterval(rec.timer);
+        recorderRef.current = null;
+        if (rec.cancelled) { setDictation(null); return; }
+        transcribeBlob(new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), onText);
+      };
+      recorderRef.current = rec;
+      setDictationSeconds(0);
+      setDictation("recording");
+      recorder.start();
+    }).catch(function (err) {
+      showToastMsg(err && err.name === "NotAllowedError" ? "Microphone access denied" : "Microphone unavailable", "error");
+    });
+  }
+
+  function stopDictation(cancel) {
+    var rec = recorderRef.current;
+    if (!rec) return;
+    rec.cancelled = !!cancel;
+    if (rec.recorder.state !== "inactive") rec.recorder.stop();
+  }
+
+  function transcribeBlob(blob, onText) {
+    setDictation("transcribing");
+    var type = (blob.type || "").split(";")[0];
+    var ext = type === "audio/mp4" ? "mp4" : type === "audio/ogg" ? "ogg" : "webm";
+    var formData = new FormData();
+    formData.append("file", blob, "recording." + ext);
+    fetch(API_BASE + "/transcribe", { method: "POST", headers: bearerHeader(), body: formData })
+      .then(function (res) {
+        if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); });
+        return res.json();
+      })
+      .then(function (data) {
+        if (data.text) onText(data.text);
+        else showToastMsg("Nothing heard", "error");
+      })
+      .catch(function (err) { showToastMsg(err.message || "Transcription failed", "error"); })
+      .finally(function () { setDictation(null); });
+  }
+
+  // Leaving a screen mid-recording drops the take rather than inserting it somewhere else
+  useEffect(function () { stopDictation(true); }, [screen]);
+
+  function appendText(prev, text) {
+    return prev && prev.trim() ? prev.replace(/\s+$/, "") + " " + text : text;
+  }
+
+  function renderDictate(onText) {
+    if (!DICTATION_SUPPORTED) return null;
+    if (dictation === "transcribing") {
+      return <View style={st.dictateRow}><Text style={st.dictateHint}>Transcribing...</Text></View>;
+    }
+    if (dictation === "recording") {
+      var m = Math.floor(dictationSeconds / 60), sec = dictationSeconds % 60;
+      return (
+        <View style={st.dictateRow}>
+          <TouchableOpacity style={[st.dictateBtn, st.dictateBtnActive]} onPress={function () { stopDictation(false); }}><Text style={st.dictateBtnText}>Stop {m}:{sec < 10 ? "0" + sec : sec}</Text></TouchableOpacity>
+          <TouchableOpacity style={st.dictateBtn} onPress={function () { stopDictation(true); }}><Text style={st.dictateBtnText}>Cancel</Text></TouchableOpacity>
+        </View>
+      );
+    }
+    return <View style={st.dictateRow}><TouchableOpacity style={st.dictateBtn} onPress={function () { startDictation(onText); }}><Text style={st.dictateBtnText}>Dictate</Text></TouchableOpacity></View>;
   }
 
   function confirmAction(title, message, onConfirm) {
@@ -986,6 +1076,7 @@ function AppContent() {
             </View>
             {composeFields.map(renderComposeField)}
             <TextInput style={[st.input, st.textArea]} placeholder={composeFields.length > 0 ? "Any comments?" : "What happened?"} placeholderTextColor={C.muted} value={composeText} onChangeText={setComposeText} multiline numberOfLines={3} />
+            {renderDictate(function (t) { setComposeText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (editingEventId) { setEditingEventId(null); setScreen("history"); doFetchHistory(historyTab, historyDate); } else setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () { submitEvent(null); }}><Text style={st.btnSubmitText}>Submit</Text></TouchableOpacity>
@@ -1028,6 +1119,7 @@ function AppContent() {
               returnKeyType="send"
               onSubmitEditing={submitQuery}
             />
+            {renderDictate(function (t) { setQueryText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               {QUERY_EFFORTS.map(function (e) {
                 return (
@@ -1232,6 +1324,7 @@ function AppContent() {
               multiline
               numberOfLines={6}
             />
+            {renderDictate(function (t) { setBulkText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("diary-bulk-scales"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () {
@@ -1282,7 +1375,10 @@ function AppContent() {
             <Text style={st.label}>{q.label}</Text>
             <Text style={st.question}>{q.question}</Text>
             {q.type === "scale" ? renderScaleGrid(q.key, q.min, q.max, function () { if (isLast) setScreen("diary-review"); else setDiaryStep(diaryStep + 1); }) :
-              <TextInput style={[st.input, st.textArea]} placeholder="Type your answer..." placeholderTextColor={C.muted} value={diaryAnswers[q.key] || ""} onChangeText={function (t) { setDiaryAnswer(q.key, t); }} multiline numberOfLines={3} />
+              <View style={{ width: "100%" }}>
+                <TextInput style={[st.input, st.textArea]} placeholder="Type your answer..." placeholderTextColor={C.muted} value={diaryAnswers[q.key] || ""} onChangeText={function (t) { setDiaryAnswer(q.key, t); }} multiline numberOfLines={3} />
+                {renderDictate(function (t) { setDiaryAnswer(q.key, appendText(diaryAnswers[q.key] || "", t)); })}
+              </View>
             }
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (diaryStep > 0) setDiaryStep(diaryStep - 1); else setScreen("diary-summary"); }}><Text style={st.btnBackText}>{diaryStep === 0 ? "Back" : "Prev"}</Text></TouchableOpacity>

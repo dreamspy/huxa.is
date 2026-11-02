@@ -72,6 +72,10 @@ class DiaryParseOut(BaseModel):
     answers: dict[str, str]
 
 
+class TranscribeOut(BaseModel):
+    text: str
+
+
 class FeedbackIn(BaseModel):
     type: str = Field(..., description="bug or feature")
     text: str
