@@ -398,6 +398,17 @@ function AppContent() {
   }
 
   // --- DICTATION ---
+  // Waiting animation on the level canvas: humps rolling across the bars. Returns a stop function.
+  function startWave(color) {
+    var raf = null;
+    var wave = function (now) {
+      raf = requestAnimationFrame(wave);
+      drawLevelBars(color, 0, function (k, x) { var v = 0.5 + 0.5 * Math.sin(x * 0.035 - now * 0.005); return v * v; });
+    };
+    raf = requestAnimationFrame(wave);
+    return function () { cancelAnimationFrame(raf); };
+  }
+
   function startDictation(onText) {
     if (recorderRef.current) return;
     // Created inside the tap handler: Safari only lets audio start from a user gesture
@@ -407,7 +418,9 @@ function AppContent() {
     var rec = { recorder: null, cancelled: false, raf: null };
     recorderRef.current = rec;
     setDictation("recording");
+    var stopWave = startWave(C.muted);
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      stopWave();
       if (rec.cancelled) {
         stream.getTracks().forEach(function (t) { t.stop(); });
         if (audioCtx) audioCtx.close();
@@ -452,6 +465,7 @@ function AppContent() {
       };
       recorder.start();
     }).catch(function (err) {
+      stopWave();
       if (audioCtx) audioCtx.close();
       if (rec.cancelled) return;
       recorderRef.current = null;
@@ -491,14 +505,7 @@ function AppContent() {
 
   function transcribeBlob(blob, onText) {
     setDictation("transcribing");
-    // Waiting animation: humps rolling across the bars
-    var waveColor = C.muted;
-    var raf = null;
-    var wave = function (now) {
-      raf = requestAnimationFrame(wave);
-      drawLevelBars(waveColor, 0, function (k, x) { var v = 0.5 + 0.5 * Math.sin(x * 0.035 - now * 0.005); return v * v; });
-    };
-    raf = requestAnimationFrame(wave);
+    var stopWave = startWave(C.muted);
     var type = (blob.type || "").split(";")[0];
     var ext = type === "audio/mp4" ? "mp4" : type === "audio/ogg" ? "ogg" : "webm";
     var formData = new FormData();
@@ -513,7 +520,7 @@ function AppContent() {
         else showToastMsg("Nothing heard", "error");
       })
       .catch(function (err) { showToastMsg(err.message || "Transcription failed", "error"); })
-      .finally(function () { cancelAnimationFrame(raf); setDictation(null); });
+      .finally(function () { stopWave(); setDictation(null); });
   }
 
   // Leaving a screen mid-recording drops the take rather than inserting it somewhere else
