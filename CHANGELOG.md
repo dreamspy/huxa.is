@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.4.7 — 2026-11-02
+
+- Diary summary, Rate Your Day and Review screens use the full screen width, with the scroll area reaching the screen edge
+
 ## v0.4.6 — 2026-11-02
 
 - The daily diary no longer asks about sleep quality. Sleep is logged as Sleep events instead
