@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.1 — 2026-11-04
+
+- Ask HuXa answers come back in Markdown and the app renders them: bold, italics, code, links, headings, lists and narrow tables. Simple lookups stay one or two sentences; open questions get a structured answer with a short takeaway
+
 ## v0.5.0 — 2026-11-02
 
 - Dictation in text fields (compose, diary text answers, Ask HuXa): a mic button records in the browser, shows a live level graph with cancel and stop, and appends the transcript to the field. After 5 minutes it asks "Still talking?" and stops and transcribes if there is no answer within 10 s. Web only for now
