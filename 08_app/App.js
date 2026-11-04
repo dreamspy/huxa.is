@@ -21,10 +21,11 @@ import NetInfo from "@react-native-community/netinfo";
 import * as SystemUI from "expo-system-ui";
 import * as ImagePicker from "expo-image-picker";
 import Tetris from "./Tetris";
+import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.5.3";
 
 // On web the token is also kept in a cookie on the parent domain (huxa.is), so a
 // token entered on huxa.is is picked up by the dev-<topic>.huxa.is previews and
@@ -138,10 +139,14 @@ var QUERY_EFFORTS = [
   { key: "high", label: "High", hint: "10-20s. When the answer has to be exact, or for patterns across months." },
 ];
 
+// On web the content column is capped at 600px; the gutter grows with the window beyond that.
+var GUTTER = Platform.OS === "web" ? "max(20px, 50vw - 300px)" : 20;
+var NEG_GUTTER = Platform.OS === "web" ? "min(-20px, 300px - 50vw)" : -20;
+
 function makeStyles(C) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: 20 },
-    scroll: { alignSelf: "stretch", marginHorizontal: -20 },
+    container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: GUTTER },
+    scroll: { alignSelf: "stretch", marginHorizontal: NEG_GUTTER },
     scrollInset: { paddingHorizontal: 20 },
     scrollContent: { alignItems: "center", paddingBottom: 40, width: "100%" },
     title: { fontSize: 28, color: C.text, fontWeight: "300", marginTop: 20, marginBottom: 20, letterSpacing: 2 },
@@ -309,6 +314,12 @@ const DEFAULT_CATEGORIES = [
   { key: "Symptom", label: "Symptom", enabled: true },
   { key: "Decision", label: "Decision", enabled: true },
   { key: "Thought", label: "Thought", enabled: true },
+  { key: "Sleep", label: "Sleep", enabled: true, fields: [
+    { key: "sleep_quality", label: "Sleep quality", type: "scale" },
+    { key: "rested", label: "How rested I feel", type: "scale" },
+    { key: "sleep_hours", label: "Hours slept", type: "number" },
+    { key: "dreams", label: "Dreams", type: "text" },
+  ] },
 ];
 
 function generateUUID() {
@@ -1339,7 +1350,7 @@ function AppContent() {
             </View>
             {queryLoading && <Text style={[st.emptyText, { marginTop: 20 }]}>{queryEffort === "high" ? "Thinking hard, this can take 10-30 seconds..." : "Thinking..."}</Text>}
             {!queryLoading && queryAnswer !== "" && (
-              <View style={[st.summaryBox, { marginTop: 20 }]}><Text style={st.summaryText}>{queryAnswer}</Text></View>
+              <View style={[st.summaryBox, { marginTop: 20 }]}><Markdown text={queryAnswer} style={st.summaryText} colors={C} /></View>
             )}
           </ScrollView>
         </KeyboardAvoidingView>

@@ -14,7 +14,7 @@ import openai
 from openai import OpenAI
 
 from app.models.event import (
-    Category,
+    Category, CategoryField,
     EventIn, EventStored, QueryIn, QueryOut,
     DiaryIn, DiaryOut, DiarySummaryOut,
     DiaryParseIn, DiaryParseOut,
@@ -103,6 +103,16 @@ DEFAULT_CATEGORIES = [
     Category(key="Symptom", label="Symptom"),
     Category(key="Decision", label="Decision"),
     Category(key="Thought", label="Thought"),
+    Category(
+        key="Sleep",
+        label="Sleep",
+        fields=[
+            CategoryField(key="sleep_quality", label="Sleep quality", type="scale"),
+            CategoryField(key="rested", label="How rested I feel", type="scale"),
+            CategoryField(key="sleep_hours", label="Hours slept", type="number"),
+            CategoryField(key="dreams", label="Dreams", type="text"),
+        ],
+    ),
 ]
 
 
@@ -263,11 +273,22 @@ def query_events(q: QueryIn) -> QueryOut:
                     "1. Events — each line is JSON with fields: id, client_timestamp, received_at, type, text, metrics, meta\n"
                     "2. Diary entries — each line is JSON with fields: id, date, answers (object with keys like "
                     "headaches, energy, gut, physical, hip_pain, mental, life, gratitude, activity), saved_at, meta. "
-                    "Older diary entries also have a 1-10 sleep rating; sleep is now logged as Sleep events.\n\n"
+                    "Older diary entries also have a 1-10 sleep rating; sleep is now logged as Sleep events "
+                    "with metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.sleep_hours (number), metrics.dreams (text) and a comment in text. Early Sleep events may also have metrics.sleep_score (a 0-100 number typed in from Apple Watch).\n\n"
                     "Events are the structured log: one line is one logged entry. Diary entries are free text. "
                     "When asked how many times something was logged, count event entries only; "
                     "do not count diary mentions as logged entries.\n\n"
-                    "Answer the user's question based on this data. Be concise and helpful."
+                    "Answer the user's question based on this data. Be concise and helpful.\n\n"
+                    "Format the answer in Markdown and match its depth to the question.\n"
+                    "- A count, a date or a simple lookup: answer in one or two sentences with the number in **bold** "
+                    "and nothing else, no headings, no sections, no advice.\n"
+                    "- An open question about patterns, causes or what to do: a thorough answer formatted the way "
+                    "ChatGPT formats one. Open with a one or two sentence direct answer, then ## headings "
+                    "(for example: What stands out, Patterns in the data, What to try), bullet points that start "
+                    "with a **bold lead-in**, specific dates, counts and scores in **bold**, numbered lists for steps "
+                    "or ranked items, and a short final section headed ## Takeaway.\n"
+                    "Use a table only to compare a few items in two or three columns, since the screen is narrow. "
+                    "There is no follow-up conversation, so do not offer further help or ask what to do next."
                 ),
             },
             {

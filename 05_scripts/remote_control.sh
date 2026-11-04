@@ -13,7 +13,8 @@ SESSION=huxa
 REPO=/opt/huxa
 CLAUDE="${HOME}/.local/bin/claude"
 [ -x "$CLAUDE" ] || CLAUDE=claude
-START="cd $REPO && $CLAUDE remote-control --spawn=same-dir --permission-mode acceptEdits --remote-control-session-name-prefix huxa"
+# No --permission-mode: a flag would override defaultMode in .claude/settings.json.
+START="cd $REPO && $CLAUDE remote-control --spawn=same-dir --remote-control-session-name-prefix huxa"
 
 running() {
     pgrep -u "$(id -u)" -f 'claude remote-control' >/dev/null

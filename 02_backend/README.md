@@ -34,6 +34,8 @@ Categories are stored in `categories.json` (default `/var/lib/huxa/categories.js
 
 Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10), `number`, `boolean`, or `text`. Field values submitted with an event go into `event.metrics` keyed by field key. Duplicate category keys or duplicate field keys within a category are rejected with 400.
 
+The default list includes a Sleep category with `sleep_quality` and `rested` (scale), `sleep_hours` (number) and `dreams` (text) fields; the comment is the event `text`. Defaults are only served while `categories.json` does not exist.
+
 ### Reports (Feedback / Bug Reports)
 
 | Method | Path | Auth | Description |
@@ -48,7 +50,7 @@ Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10)
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/health` | No | Health check; also reports `auth_required` |
-| POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid` |
+| POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid`. The answer is Markdown, which the app renders |
 | POST | `/transcribe` | Bearer token | Speech to text (OpenAI). Multipart `file` with an audio clip (webm, mp4, m4a, mp3, ogg, wav, flac; max 25 MB), returns `{"text": "..."}` |
 | GET | `/attachments/{filename}` | No | Serve uploaded attachment images |
 
