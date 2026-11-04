@@ -10,13 +10,6 @@
 - [ ] Distribute via TestFlight for personal use
 - [ ] (Optional) Submit to App Store for public distribution
 
-## Tailscale (Deploy from Anywhere)
-
-- [x] Install Tailscale on Mac
-- [x] Install Tailscale on server
-- [x] Update SSH config to use Tailscale IP (`100.98.66.32`)
-- [x] Verify `fab deploy` works over Tailscale
-
 ## Cloudflare App Lockdown
 
 - [ ] Set up Cloudflare Access or app lockdown (replace IP lockdown)
@@ -59,11 +52,6 @@
 - [ ] Remove legacy bearer token support after confirming OAuth works
 - [ ] Update CLAUDE.md (single-user → multi-user, bearer token → JWT/OAuth)
 
-## Dark / Light Mode
-
-- [ ] Add theme toggle to app and web frontend
-- [ ] Persist preference in AsyncStorage / localStorage
-
 ## Smart Query (Embeddings / RAG)
 
 The current `/query` endpoint sends the entire event log to GPT. At ~10 events/day, the log will exceed GPT-4o-mini's 128K token context window within 6-12 months. An embeddings-based approach finds only the relevant events for each query, making it scale to years of data without hitting token limits.
@@ -80,20 +68,29 @@ The current `/query` endpoint sends the entire event log to GPT. At ~10 events/d
 - [ ] Links to App Store / TestFlight
 - [ ] Documentation / getting started guide
 
-## Voice Input
+## Archive
 
-Server-side transcription through OpenAI, ChatGPT-style UX: mic button in the text field, the field turns into cancel, level graph and stop while recording, text is appended to the field for editing before submit. The 2026-06-06 plan (ElevenLabs Scribe v2 first, `01_docs/voice-input-plan.md`) was never committed; the Scribe comparison is still open if Icelandic accuracy turns out poor.
+### Dark / Light Mode ✅
+
+- [x] Add theme toggle to app and web frontend
+- [x] Persist preference in AsyncStorage / localStorage
+
+### Voice Input ✅
+
+Server-side transcription through OpenAI, ChatGPT-style UX: mic button in the text field, the field turns into cancel, level graph and stop while recording, text is appended to the field for editing before submit. The 2026-06-06 plan (ElevenLabs Scribe v2 first, `01_docs/voice-input-plan.md`) was never committed; the Scribe comparison was never run.
 
 - [x] Backend `POST /transcribe` (multipart audio to `gpt-4o-transcribe`, returns text)
 - [x] Web recording UI (mic in the field, level graph, cancel/stop) on compose, diary text answers and Ask HuXa
 - [x] Quick log button on the home screen: dictate and save as an Event without leaving the page
-- [ ] Native recording (`expo-audio`) so the button also appears in the iOS/Android builds
-- [ ] Compare `gpt-4o-transcribe` against ElevenLabs Scribe v2 on own Icelandic/English recordings
-- [ ] Optional cleanup pass (filler words, punctuation) if raw transcripts need it
 
----
+Not pursued: native recording (`expo-audio`), the Scribe v2 comparison and a cleanup pass. Web dictation covers the need.
 
-## Archive
+### Tailscale (Deploy from Anywhere) ✅
+
+- [x] Install Tailscale on Mac
+- [x] Install Tailscale on server
+- [x] Update SSH config to use Tailscale IP (`100.98.66.32`)
+- [x] Verify `fab deploy` works over Tailscale
 
 ### User-Defined Categories ✅
 
