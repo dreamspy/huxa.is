@@ -81,6 +81,7 @@
 | `04_infrastructure/systemd/huxa-preview@.service` | Preview backend, systemd user unit for `huxadev` |
 | `04_infrastructure/sudo/` | Root half of a deploy and the sudoers rule for `huxadev` |
 | `CHANGELOG.md` | Version history and release notes |
+| `.claude/settings.json` | Claude Code permissions: auto mode, `/opt/huxa-dev` in scope, routine commands allowed, force push and deploy still ask, production data and sudo denied |
 
 ## Worktree
 
