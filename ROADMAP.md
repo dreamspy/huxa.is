@@ -82,6 +82,7 @@ Server-side transcription through OpenAI, ChatGPT-style UX: mic button in the te
 - [x] Backend `POST /transcribe` (multipart audio to `gpt-4o-transcribe`, returns text)
 - [x] Web recording UI (mic in the field, level graph, cancel/stop) on compose, diary text answers and Ask HuXa
 - [x] Quick log button on the home screen: dictate and save as an Event without leaving the page
+- [x] Live transcript: the words appear in the field while speaking (OpenAI Realtime, `gpt-live-transcribe`, `POST /transcribe/session` mints the client secret), the field grows to 7 lines
 
 Not pursued: native recording (`expo-audio`), the Scribe v2 comparison and a cleanup pass. Web dictation covers the need.
 
