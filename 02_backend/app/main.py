@@ -19,6 +19,7 @@ from app.models.event import (
     DiaryIn, DiaryOut, DiarySummaryOut,
     DiaryParseIn, DiaryParseOut,
     FeedbackIn, FeedbackOut,
+    TranscribeOut,
 )
 
 import uuid
@@ -49,6 +50,21 @@ QUERY_MODELS = {
     # ~10-20s. When the number has to be exact, or for patterns across months. 99/100 in testing.
     "high": {"model": "gpt-5-nano", "reasoning_effort": "medium"},
 }
+
+# /transcribe model. whisper-1 is cheaper but mishears more in mixed Icelandic/English.
+TRANSCRIBE_MODEL = "gpt-4o-transcribe"
+# Container type as the browser's MediaRecorder reports it -> file extension OpenAI recognises
+AUDIO_EXT = {
+    "audio/webm": ".webm",
+    "audio/mp4": ".mp4",
+    "audio/mpeg": ".mp3",
+    "audio/ogg": ".ogg",
+    "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
+    "audio/flac": ".flac",
+    "audio/x-m4a": ".m4a",
+}
+MAX_AUDIO_BYTES = 25 * 1024 * 1024  # OpenAI's upload limit
 
 
 if not AUTH_TOKEN:
@@ -251,7 +267,17 @@ def query_events(q: QueryIn) -> QueryOut:
                     "Events are the structured log: one line is one logged entry. Diary entries are free text. "
                     "When asked how many times something was logged, count event entries only; "
                     "do not count diary mentions as logged entries.\n\n"
-                    "Answer the user's question based on this data. Be concise and helpful."
+                    "Answer the user's question based on this data. Be concise and helpful.\n\n"
+                    "Format the answer in Markdown and match its depth to the question.\n"
+                    "- A count, a date or a simple lookup: answer in one or two sentences with the number in **bold** "
+                    "and nothing else, no headings, no sections, no advice.\n"
+                    "- An open question about patterns, causes or what to do: a thorough answer formatted the way "
+                    "ChatGPT formats one. Open with a one or two sentence direct answer, then ## headings "
+                    "(for example: What stands out, Patterns in the data, What to try), bullet points that start "
+                    "with a **bold lead-in**, specific dates, counts and scores in **bold**, numbered lists for steps "
+                    "or ranked items, and a short final section headed ## Takeaway.\n"
+                    "Use a table only to compare a few items in two or three columns, since the screen is narrow. "
+                    "There is no follow-up conversation, so do not offer further help or ask what to do next."
                 ),
             },
             {
@@ -262,6 +288,32 @@ def query_events(q: QueryIn) -> QueryOut:
     )
 
     return QueryOut(answer=response.choices[0].message.content)
+
+
+@app.post("/transcribe", dependencies=[Depends(verify_token)])
+async def transcribe_audio(file: UploadFile = File(...)) -> TranscribeOut:
+    if not OPENAI_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OpenAI API key not configured",
+        )
+
+    mime = (file.content_type or "").split(";")[0].strip().lower()
+    if mime not in AUDIO_EXT:
+        raise HTTPException(status_code=400, detail=f"Unsupported audio type: {mime or 'unknown'}")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty recording")
+    if len(data) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=400, detail="Recording too large (max 25 MB)")
+
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    result = client.audio.transcriptions.create(
+        model=TRANSCRIBE_MODEL,
+        file=("recording" + AUDIO_EXT[mime], data, mime),
+    )
+    return TranscribeOut(text=result.text.strip())
 
 
 @app.post("/diary/parse-text", dependencies=[Depends(verify_token)])

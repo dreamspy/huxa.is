@@ -48,7 +48,8 @@ Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10)
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/health` | No | Health check; also reports `auth_required` |
-| POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid` |
+| POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid`. The answer is Markdown, which the app renders |
+| POST | `/transcribe` | Bearer token | Speech to text (OpenAI). Multipart `file` with an audio clip (webm, mp4, m4a, mp3, ogg, wav, flac; max 25 MB), returns `{"text": "..."}` |
 | GET | `/attachments/{filename}` | No | Serve uploaded attachment images |
 
 ### Query effort tiers
@@ -68,6 +69,14 @@ The system prompt tells the model that counting questions refer to event entries
 mentions: free-text diary mentions were the main cause of off-by-one answers, and asking the model
 to count those as well tripled latency without improving accuracy. Re-run the benchmark before
 changing the tier models or the prompt.
+
+### Transcription
+
+`POST /transcribe` forwards the clip as-is to OpenAI's transcription API; the model is
+`TRANSCRIBE_MODEL` in `app/main.py` (`gpt-4o-transcribe`). The app records in the browser with
+MediaRecorder (Safari sends `audio/mp4`, Chrome and Firefox `audio/webm`) and appends the returned
+text to the field being edited. The file extension passed to OpenAI is derived from the part's
+content type, so the client's filename does not matter. Language is auto-detected.
 
 ## Local Development
 
@@ -116,5 +125,5 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 | `HUXA_CATEGORIES_FILE` | Path to categories.json (default: `/var/lib/huxa/categories.json`) |
 | `HUXA_ATTACHMENTS_DIR` | Path to attachments directory (default: `/var/lib/huxa/attachments`) |
 | `HUXA_AUTH_TOKEN` | Bearer token for authentication. Empty disables auth (local dev only): `/health` then reports `auth_required: false` and the app skips the token screen |
-| `OPENAI_API_KEY` | OpenAI API key (required for `/query`, `/diary/{date}/summary`, `/diary/parse-text`) |
+| `OPENAI_API_KEY` | OpenAI API key (required for `/query`, `/diary/{date}/summary`, `/diary/parse-text`, `/transcribe`) |
 | `HUXA_CONFIG` | Path to config.json (optional) |
