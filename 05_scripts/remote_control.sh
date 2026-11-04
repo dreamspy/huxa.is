@@ -16,8 +16,10 @@ CLAUDE="${HOME}/.local/bin/claude"
 # No --permission-mode: a flag would override defaultMode in .claude/settings.json.
 START="cd $REPO && $CLAUDE remote-control --spawn=same-dir --remote-control-session-name-prefix huxa"
 
+PATTERN='^(node )?[^ ]*claude remote-control'
+
 running() {
-    pgrep -u "$(id -u)" -f 'claude remote-control' >/dev/null
+    pgrep -u "$(id -u)" -f "$PATTERN" >/dev/null
 }
 
 start() {
@@ -40,8 +42,15 @@ start() {
 
 stop() {
     if running; then
-        pkill -u "$(id -u)" -f 'claude remote-control'
-        sleep 1
+        pkill -u "$(id -u)" -f "$PATTERN"
+        for _ in $(seq 20); do
+            running || break
+            sleep 1
+        done
+        if running; then
+            pkill -9 -u "$(id -u)" -f "$PATTERN" || true
+            sleep 1
+        fi
     fi
     echo "remote control stopped"
 }
