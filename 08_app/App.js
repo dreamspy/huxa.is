@@ -25,7 +25,7 @@ import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.1";
+const APP_VERSION = "0.5.2";
 // Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
@@ -115,10 +115,14 @@ var QUERY_EFFORTS = [
   { key: "high", label: "High", hint: "10-20s. When the answer has to be exact, or for patterns across months." },
 ];
 
+// On web the content column is capped at 600px; the gutter grows with the window beyond that.
+var GUTTER = Platform.OS === "web" ? "max(20px, 50vw - 300px)" : 20;
+var NEG_GUTTER = Platform.OS === "web" ? "min(-20px, 300px - 50vw)" : -20;
+
 function makeStyles(C) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: 20 },
-    scroll: { alignSelf: "stretch", marginHorizontal: -20 },
+    container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: GUTTER },
+    scroll: { alignSelf: "stretch", marginHorizontal: NEG_GUTTER },
     scrollInset: { paddingHorizontal: 20 },
     scrollContent: { alignItems: "center", paddingBottom: 40, width: "100%" },
     title: { fontSize: 28, color: C.text, fontWeight: "300", marginTop: 20, marginBottom: 20, letterSpacing: 2 },
