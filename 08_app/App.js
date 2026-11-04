@@ -236,7 +236,7 @@ const DEFAULT_CATEGORIES = [
     { key: "sleep_quality", label: "Sleep quality", type: "scale" },
     { key: "rested", label: "How rested I feel", type: "scale" },
     { key: "sleep_hours", label: "Hours slept", type: "number" },
-    { key: "dreams", label: "Dreams", type: "boolean" },
+    { key: "dreams", label: "Dreams", type: "text" },
   ] },
 ];
 
