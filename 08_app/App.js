@@ -233,8 +233,8 @@ const DEFAULT_CATEGORIES = [
   { key: "Decision", label: "Decision", enabled: true },
   { key: "Thought", label: "Thought", enabled: true },
   { key: "Sleep", label: "Sleep", enabled: true, fields: [
-    { key: "sleep_score", label: "Sleep score (Apple Watch)", type: "number" },
     { key: "sleep_quality", label: "Sleep quality", type: "scale" },
+    { key: "rested", label: "How rested I feel", type: "scale" },
   ] },
 ];
 

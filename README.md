@@ -58,7 +58,7 @@ The `type` field holds a category key. Categories are user-defined and managed i
 
 Each category can define structured **fields** (types: `scale` 1–10, `number`, `boolean`, `text`), also managed in the app. When logging, the fields render as inputs and their values are stored in the event's `metrics` object, e.g. `{ "sleep_hours": 7.5, "sleep_score": 6, "mag_glycine": true }`.
 
-The default Sleep category is the sleep log. It has two fields, `sleep_score` (number, the Apple Watch score) and `sleep_quality` (scale 1–10); the comment goes in the event `text`. Defaults only apply when `categories.json` does not exist yet, so an existing install adds the fields under Manage Categories › Sleep.
+The default Sleep category is the sleep log. It has two fields, `sleep_quality` and `rested` (both scale 1–10); the comment goes in the event `text`. Defaults only apply when `categories.json` does not exist yet, so an existing install adds the fields under Manage Categories › Sleep.
 
 ## Architecture
 

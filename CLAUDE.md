@@ -27,7 +27,7 @@
 - Event categories are user-defined, stored in `/var/lib/huxa/categories.json`, managed in-app via `GET/PUT /categories` (add, toggle, reorder, delete). Historical events are unaffected by category changes; they store the type string directly.
 - `POST /query` has three effort tiers (`low`, `mid`, `high`, default `mid`) mapped to OpenAI models in `QUERY_MODELS` in `02_backend/app/main.py`. Measured speed and accuracy are in `02_backend/README.md`; re-run that benchmark before changing the tier models.
 - Categories can define structured fields (`scale` 1–10, `number`, `boolean`, `text`). Field values are stored in `event.metrics` keyed by field key. The diary is separate and stays hardcoded (rolling daily questions).
-- Sleep is logged as events of the default `Sleep` category: `metrics.sleep_score` (Apple Watch, number), `metrics.sleep_quality` (scale 1–10), comment in `text`. Defaults in `DEFAULT_CATEGORIES` (backend `main.py` and `08_app/App.js`) only seed a missing `categories.json`.
+- Sleep is logged as events of the default `Sleep` category: `metrics.sleep_quality` and `metrics.rested` (both scale 1–10), comment in `text`. The Apple Watch sleep score is not typed in; early events carry a `metrics.sleep_score`, newer ones do not. Defaults in `DEFAULT_CATEGORIES` (backend `main.py` and `08_app/App.js`) only seed a missing `categories.json`.
 
 ## Event Schema (v1)
 
