@@ -12,13 +12,7 @@ ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh restart
 ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh status
 ```
 
-It runs `claude remote-control --spawn=same-dir --permission-mode acceptEdits --remote-control-session-name-prefix huxa` in `/opt/huxa`, so sessions appear in the app as `huxa-...`. `acceptEdits` lets sessions edit files without asking and still asks before shell commands; edit the script if you prefer `auto`. To watch the server: `ssh huxadev@huxa`, then `tmux attach -t huxa`, detach with Ctrl-b then d.
-
-One-time, so sessions may edit the worktrees under `/opt/huxa-dev` without a prompt: in `/home/huxadev/.claude/settings.json` add
-
-```json
-{ "permissions": { "additionalDirectories": ["/opt/huxa-dev"] } }
-```
+It runs `claude remote-control --spawn=same-dir --remote-control-session-name-prefix huxa` in `/opt/huxa`, so sessions appear in the app as `huxa-...`. The permission mode is not given on the command line; it comes from the committed `.claude/settings.json`: auto mode, `/opt/huxa-dev` in scope, routine git, preview, Expo, npm and curl commands allowed, force pushes and `deploy.sh` still asking, writes to `/var/lib/huxa` and sudo denied. A `--permission-mode` flag would override that file, so do not add one. Sessions already open when the server restarts end with it; their worktrees and transcripts stay on disk. To watch the server: `ssh huxadev@huxa`, then `tmux attach -t huxa`, detach with Ctrl-b then d.
 
 ## Sessions
 

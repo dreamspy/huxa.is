@@ -8,20 +8,18 @@ git, preview.sh, Expo, npm and curl, keeps force pushes, hard resets and
 deploy.sh on the ask list, and denies writes to `/var/lib/huxa`, `/etc` and
 sudo. A reminder for step 2 fires in the integrator session on 11 Nov 2026.
 
-### 1. Restart remote-control without the mode flag
+### 1. Restart remote-control
 
-The spawner on the server runs with `--permission-mode acceptEdits`. A mode
-given on the command line overrides `defaultMode` from settings, so sessions
-it spawns stay in acceptEdits (edits silent, every Bash call outside the allow
-list asks). A second bare `claude remote-control` is running next to it.
+The server process still running was started with `--permission-mode
+acceptEdits`. A mode given on the command line overrides `defaultMode` from
+settings, so sessions it spawns stay in acceptEdits (edits silent, every Bash
+call outside the allow list asks). The flag is removed from
+`05_scripts/remote_control.sh` on main; the running process has to be
+restarted to pick that up:
 
-Both live in the tmux session `huxa`. Attach over SSH (`tmux attach -t huxa`),
-stop both, then start one:
+    ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh restart
 
-    claude remote-control --spawn=same-dir --remote-control-session-name-prefix huxa
-
-No `--permission-mode`: auto comes from the settings file. Only sessions
-spawned after the restart get it; open ones keep acceptEdits.
+Only sessions spawned after the restart get auto mode.
 
 Restarting ends the processes of every open session. Worktrees, branches and
 transcripts on disk are untouched, but a feature session that is mid-task has
