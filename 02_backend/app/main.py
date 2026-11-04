@@ -41,7 +41,8 @@ ATTACHMENTS_DIR = Path(os.environ.get("HUXA_ATTACHMENTS_DIR", "/var/lib/huxa/att
 AUTH_TOKEN = os.environ.get("HUXA_AUTH_TOKEN", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
-# /query model per effort tier, see 02_backend/README.md for measured speed and accuracy
+# /query model per effort tier, see 02_backend/README.md for measured speed and accuracy.
+# Diary quick-entry parsing (/diary/parse-text) always uses the mid tier.
 QUERY_MODELS = {
     # ~1s, no reasoning. Summaries, "what did I log yesterday", finding an entry. Guesses at counts.
     "low": {"model": "gpt-4o-mini"},
@@ -377,7 +378,7 @@ def parse_diary_text(body: DiaryParseIn) -> DiaryParseOut:
 
     client = OpenAI(api_key=OPENAI_API_KEY)
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        **QUERY_MODELS["mid"],
         response_format={"type": "json_object"},
         messages=[
             {

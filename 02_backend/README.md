@@ -21,7 +21,7 @@ FastAPI application for the HuXa event engine.
 | POST | `/diary` | Bearer token | Save a diary entry |
 | DELETE | `/diary/{date}` | Bearer token | Soft-delete a diary entry |
 | GET | `/diary/{date}/summary` | Bearer token | AI summary of the day's events |
-| POST | `/diary/parse-text` | Bearer token | Parse free-form text into diary fields (AI) |
+| POST | `/diary/parse-text` | Bearer token | Parse free-form text into diary fields (AI, the `mid` query tier model) |
 
 ### Categories
 
