@@ -267,7 +267,17 @@ def query_events(q: QueryIn) -> QueryOut:
                     "Events are the structured log: one line is one logged entry. Diary entries are free text. "
                     "When asked how many times something was logged, count event entries only; "
                     "do not count diary mentions as logged entries.\n\n"
-                    "Answer the user's question based on this data. Be concise and helpful."
+                    "Answer the user's question based on this data. Be concise and helpful.\n\n"
+                    "Format the answer in Markdown and match its depth to the question.\n"
+                    "- A count, a date or a simple lookup: answer in one or two sentences with the number in **bold** "
+                    "and nothing else, no headings, no sections, no advice.\n"
+                    "- An open question about patterns, causes or what to do: a thorough answer formatted the way "
+                    "ChatGPT formats one. Open with a one or two sentence direct answer, then ## headings "
+                    "(for example: What stands out, Patterns in the data, What to try), bullet points that start "
+                    "with a **bold lead-in**, specific dates, counts and scores in **bold**, numbered lists for steps "
+                    "or ranked items, and a short final section headed ## Takeaway.\n"
+                    "Use a table only to compare a few items in two or three columns, since the screen is narrow. "
+                    "There is no follow-up conversation, so do not offer further help or ask what to do next."
                 ),
             },
             {

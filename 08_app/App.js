@@ -21,10 +21,11 @@ import NetInfo from "@react-native-community/netinfo";
 import * as SystemUI from "expo-system-ui";
 import * as ImagePicker from "expo-image-picker";
 import Tetris from "./Tetris";
+import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.5.1";
 // Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
@@ -1312,7 +1313,7 @@ function AppContent() {
             </View>
             {queryLoading && <Text style={[st.emptyText, { marginTop: 20 }]}>{queryEffort === "high" ? "Thinking hard, this can take 10-30 seconds..." : "Thinking..."}</Text>}
             {!queryLoading && queryAnswer !== "" && (
-              <View style={[st.summaryBox, { marginTop: 20 }]}><Text style={st.summaryText}>{queryAnswer}</Text></View>
+              <View style={[st.summaryBox, { marginTop: 20 }]}><Markdown text={queryAnswer} style={st.summaryText} colors={C} /></View>
             )}
           </ScrollView>
         </KeyboardAvoidingView>

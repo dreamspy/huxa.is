@@ -48,7 +48,7 @@ Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10)
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/health` | No | Health check; also reports `auth_required` |
-| POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid` |
+| POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid`. The answer is Markdown, which the app renders |
 | POST | `/transcribe` | Bearer token | Speech to text (OpenAI). Multipart `file` with an audio clip (webm, mp4, m4a, mp3, ogg, wav, flac; max 25 MB), returns `{"text": "..."}` |
 | GET | `/attachments/{filename}` | No | Serve uploaded attachment images |
 
