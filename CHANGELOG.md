@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.5 — 2026-11-04
+
+- Diary quick entry parses dictated text with the mid tier model (gpt-5-mini, low reasoning) instead of gpt-4o-mini, so details are less likely to be dropped when sorting a day into fields.
+
 ## v0.5.4 — 2026-11-04
 
 - On web the token is also kept in a cookie on `huxa.is`, so one login covers huxa.is and every `dev-<topic>.huxa.is` preview
