@@ -14,7 +14,7 @@ import openai
 from openai import OpenAI
 
 from app.models.event import (
-    Category,
+    Category, CategoryField,
     EventIn, EventStored, QueryIn, QueryOut,
     DiaryIn, DiaryOut, DiarySummaryOut,
     DiaryParseIn, DiaryParseOut,
@@ -103,6 +103,16 @@ DEFAULT_CATEGORIES = [
     Category(key="Symptom", label="Symptom"),
     Category(key="Decision", label="Decision"),
     Category(key="Thought", label="Thought"),
+    Category(
+        key="Sleep",
+        label="Sleep",
+        fields=[
+            CategoryField(key="sleep_quality", label="Sleep quality", type="scale"),
+            CategoryField(key="rested", label="How rested I feel", type="scale"),
+            CategoryField(key="sleep_hours", label="Hours slept", type="number"),
+            CategoryField(key="dreams", label="Dreams", type="text"),
+        ],
+    ),
 ]
 
 
@@ -263,7 +273,8 @@ def query_events(q: QueryIn) -> QueryOut:
                     "1. Events — each line is JSON with fields: id, client_timestamp, received_at, type, text, metrics, meta\n"
                     "2. Diary entries — each line is JSON with fields: id, date, answers (object with keys like "
                     "headaches, energy, gut, physical, hip_pain, mental, life, gratitude, activity), saved_at, meta. "
-                    "Older diary entries also have a 1-10 sleep rating; sleep is now logged as Sleep events.\n\n"
+                    "Older diary entries also have a 1-10 sleep rating; sleep is now logged as Sleep events "
+                    "with metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.sleep_hours (number), metrics.dreams (text) and a comment in text. Early Sleep events may also have metrics.sleep_score (a 0-100 number typed in from Apple Watch).\n\n"
                     "Events are the structured log: one line is one logged entry. Diary entries are free text. "
                     "When asked how many times something was logged, count event entries only; "
                     "do not count diary mentions as logged entries.\n\n"

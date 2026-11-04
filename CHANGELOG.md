@@ -2,6 +2,11 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.3 — 2026-11-04
+
+- Sleep is a default category with sleep quality and how rested I feel (both 1-10), hours slept and dreams. Defaults only seed a missing `categories.json`
+- Ask HuXa knows the Sleep fields, and that early Sleep events carry an Apple Watch `sleep_score` instead
+
 ## v0.5.2 — 2026-11-04
 
 - On web the content is capped at a 600px column and the side gutter grows with the window, so wide desktop windows no longer stretch the app edge to edge
