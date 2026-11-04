@@ -19,7 +19,7 @@ from app.models.event import (
     DiaryIn, DiaryOut, DiarySummaryOut,
     DiaryParseIn, DiaryParseOut,
     FeedbackIn, FeedbackOut,
-    TranscribeOut,
+    TranscribeOut, TranscribeSessionOut,
 )
 
 import uuid
@@ -54,6 +54,12 @@ QUERY_MODELS = {
 
 # /transcribe model. whisper-1 is cheaper but mishears more in mixed Icelandic/English.
 TRANSCRIBE_MODEL = "gpt-4o-transcribe"
+# Live dictation (/transcribe/session): streams transcript deltas while speaking, final text on
+# commit. Takes a list of expected languages instead of one; both come through in a mixed take.
+TRANSCRIBE_LIVE_MODEL = "gpt-live-transcribe"
+TRANSCRIBE_LIVE_LANGUAGES = ["is", "en"]
+# How long a client secret can open a session; the session itself may outlive it
+TRANSCRIBE_SESSION_SECRET_S = 120
 # Container type as the browser's MediaRecorder reports it -> file extension OpenAI recognises
 AUDIO_EXT = {
     "audio/webm": ".webm",
@@ -326,6 +332,35 @@ async def transcribe_audio(file: UploadFile = File(...)) -> TranscribeOut:
         file=("recording" + AUDIO_EXT[mime], data, mime),
     )
     return TranscribeOut(text=result.text.strip())
+
+
+@app.post("/transcribe/session", dependencies=[Depends(verify_token)])
+def transcribe_session() -> TranscribeSessionOut:
+    """Short-lived client secret for a Realtime transcription session. The browser streams
+    PCM audio straight to OpenAI over a WebSocket and gets the transcript back while speaking;
+    the audio never passes through this server."""
+    if not OPENAI_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OpenAI API key not configured",
+        )
+
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    secret = client.realtime.client_secrets.create(
+        expires_after={"anchor": "created_at", "seconds": TRANSCRIBE_SESSION_SECRET_S},
+        session={
+            "type": "transcription",
+            "audio": {
+                "input": {
+                    "format": {"type": "audio/pcm", "rate": 24000},
+                    "noise_reduction": {"type": "near_field"},
+                    "transcription": {"model": TRANSCRIBE_LIVE_MODEL, "languages": TRANSCRIBE_LIVE_LANGUAGES},
+                    "turn_detection": None,
+                }
+            },
+        },
+    )
+    return TranscribeSessionOut(client_secret=secret.value, expires_at=secret.expires_at)
 
 
 @app.post("/diary/parse-text", dependencies=[Depends(verify_token)])

@@ -76,6 +76,11 @@ class TranscribeOut(BaseModel):
     text: str
 
 
+class TranscribeSessionOut(BaseModel):
+    client_secret: str
+    expires_at: int
+
+
 class FeedbackIn(BaseModel):
     type: str = Field(..., description="bug or feature")
     text: str

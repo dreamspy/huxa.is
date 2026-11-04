@@ -25,7 +25,7 @@ import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.5";
+const APP_VERSION = "0.5.6";
 
 // On web the token is also kept in a cookie on the parent domain (huxa.is), so a
 // token entered on huxa.is is picked up by the dev-<topic>.huxa.is previews and
@@ -50,9 +50,23 @@ function writeTokenCookie(t) {
   var secure = window.location.protocol === "https:" ? "; Secure" : "";
   document.cookie = TOKEN_COOKIE + "=" + encodeURIComponent(t) + "; Path=/; Max-Age=315360000; SameSite=Lax" + secure + tokenCookieDomain();
 }
-// Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
+// Dictation streams the mic to an OpenAI Realtime transcription session (see startDictation).
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
-const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
+const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof WebSocket !== "undefined" && !!(window.AudioContext || window.webkitAudioContext);
+const REALTIME_URL = "wss://api.openai.com/v1/realtime";
+// The session takes mono 16-bit PCM at 24 kHz. The worklet batches mic samples into blocks so
+// the main thread gets a message every ~40 ms rather than every 128 frames.
+const PCM_RATE = 24000;
+const PCM_WORKLET = "class P extends AudioWorkletProcessor{constructor(){super();this.buf=new Float32Array(2048);this.n=0}process(inputs){var ch=inputs[0]&&inputs[0][0];if(!ch)return true;for(var i=0;i<ch.length;i++){this.buf[this.n++]=ch[i];if(this.n===this.buf.length){this.port.postMessage(this.buf);this.buf=new Float32Array(2048);this.n=0}}return true}}registerProcessor('huxa-pcm',P);";
+// After stop, how long to wait for the final transcript before settling for the live draft
+const FINAL_WAIT_MS = 10000;
+// The field grows to this many lines while dictating so the live transcript has room
+const DICTATE_LINES = 7, DICTATE_LINE_H = 22;
+function pcmBase64(int16) {
+  var bytes = new Uint8Array(int16.buffer), s = "";
+  for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
 // Level graph: one bar per LEVEL_MS of audio, newest at the right edge, scrolled left between samples
 const LEVEL_MS = 70, LEVEL_PITCH = 6, LEVEL_BAR_W = 3, LEVEL_MIN_H = 4, LEVEL_MAX_H = 26;
 // After MAX_RECORD_MS the bar asks "Still talking?" for PROMPT_S seconds while recording continues;
@@ -228,6 +242,7 @@ function makeStyles(C) {
     quickLogBar: { paddingHorizontal: 12 },
     dictateMic: { position: "absolute", right: 10, bottom: 22, width: 30, height: 30, alignItems: "center", justifyContent: "center" },
     dictateBar: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    liveArea: { minHeight: DICTATE_LINES * DICTATE_LINE_H + 28, lineHeight: DICTATE_LINE_H, paddingRight: 14 },
     dictateIconBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.surface, alignItems: "center", justifyContent: "center" },
     dictateX: { width: 14, height: 14, alignItems: "center", justifyContent: "center" },
     dictateXBar: { position: "absolute", width: 16, height: 2.5, borderRadius: 1.5, backgroundColor: C.text },
@@ -395,7 +410,9 @@ function AppContent() {
 
   var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "opening" | "recording" | "transcribing"
   var _dc3 = useState(null), dictationPrompt = _dc3[0], setDictationPrompt = _dc3[1]; // seconds left to answer "Still talking?"
+  var _dc4 = useState(""), liveText = _dc4[0], setLiveText = _dc4[1]; // transcript so far of the running take
   var recorderRef = useRef(null);
+  var liveInputRef = useRef(null);
   var levelCanvasRef = useRef(null);
   var _ql = useState(null), quickLogged = _ql[0], setQuickLogged = _ql[1]; // { event, offline } shown on the home screen after a quick log
 
@@ -463,75 +480,154 @@ function AppContent() {
   }
 
   // --- DICTATION ---
+  // The mic streams 24 kHz PCM to an OpenAI Realtime transcription session over a WebSocket,
+  // opened with a short-lived secret from POST /transcribe/session, and the transcript comes back
+  // word by word while speaking. Stop commits the audio; the final text replaces the live draft
+  // and goes to onText. Cancel drops the take.
   function startDictation(onText) {
     if (recorderRef.current) return;
     // Created inside the tap handler: Safari only lets audio start from a user gesture
     var AC = window.AudioContext || window.webkitAudioContext;
-    var audioCtx = AC ? new AC() : null;
-    // The bar shows at once; the mic takes a moment to open and the bars start moving when it has
-    var rec = { recorder: null, cancelled: false, raf: null };
+    var rec = { audioCtx: new AC(), ws: null, stream: null, segments: [], cancelled: false, recording: false, stopping: false, done: false, sent: false, onText: onText };
     recorderRef.current = rec;
     var waveStart = performance.now();
     setDictation("opening");
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      if (rec.cancelled) {
-        stream.getTracks().forEach(function (t) { t.stop(); });
-        if (audioCtx) audioCtx.close();
-        return;
-      }
-      // Safari records audio/mp4, Chrome and Firefox audio/webm; OpenAI accepts both
-      var mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0];
-      var recorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
-      var chunks = [];
-      rec.recorder = recorder;
-      if (audioCtx) {
-        var analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 512;
-        audioCtx.createMediaStreamSource(stream).connect(analyser);
-        var buf = new Uint8Array(analyser.fftSize);
-        // newest first; seeded with the waiting wave's current shape so the handover is seamless
-        var samples = [];
-        var elapsedS = (performance.now() - waveStart) / 1000;
-        for (var k0 = 0; k0 < 400; k0++) samples.push(waveLevel(k0, elapsedS));
-        var lastSample = performance.now();
-        var smoothed = 0;
-        var barColor = C.text;
-        var draw = function (now) {
-          rec.raf = requestAnimationFrame(draw);
-          analyser.getByteTimeDomainData(buf);
-          var sum = 0;
-          for (var i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; sum += v * v; }
-          var level = Math.min(1, Math.sqrt(sum / buf.length) * 4);
-          smoothed = level > smoothed ? level : smoothed * 0.7 + level * 0.3; // quick attack, soft decay
-          while (now - lastSample >= LEVEL_MS) { samples.unshift(smoothed); samples.pop(); lastSample += LEVEL_MS; }
-          // newest bar slides in from the right edge
-          drawLevelBars(barColor, ((now - lastSample) / LEVEL_MS) * LEVEL_PITCH, function (k) { return samples[k] || 0; });
-        };
-        rec.raf = requestAnimationFrame(draw);
-        audioCtx.resume();
-      }
-      recorder.ondataavailable = function (e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
-      recorder.onstop = function () {
-        stream.getTracks().forEach(function (t) { t.stop(); });
-        if (rec.raf) cancelAnimationFrame(rec.raf);
-        clearTimeout(rec.limit);
-        clearInterval(rec.countdown);
-        setDictationPrompt(null);
-        if (audioCtx) audioCtx.close();
-        recorderRef.current = null;
-        if (rec.cancelled) { setDictation(null); return; }
-        transcribeBlob(new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), onText);
-      };
-      setDictation("recording");
-      recorder.start();
-      armRecordingLimit(rec);
-    }).catch(function (err) {
-      if (audioCtx) audioCtx.close();
-      if (rec.cancelled) return;
-      recorderRef.current = null;
-      setDictation(null);
-      showToastMsg(err && err.name === "NotAllowedError" ? "Microphone access denied" : "Microphone unavailable", "error");
+    setLiveText("");
+
+    var sessionP = fetch(API_BASE + "/transcribe/session", { method: "POST", headers: bearerHeader() }).then(function (res) {
+      if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); });
+      return res.json();
     });
+    var micP = navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      if (rec.done) stream.getTracks().forEach(function (t) { t.stop(); }); // cancelled while the mic was opening
+      rec.stream = stream;
+      return stream;
+    });
+    Promise.all([sessionP, micP]).then(function (r) {
+      if (rec.done) return;
+      var session = r[0], stream = r[1];
+      // Browsers cannot set headers on a WebSocket; the secret travels as a subprotocol
+      var ws = new WebSocket(REALTIME_URL, ["realtime", "openai-insecure-api-key." + session.client_secret]);
+      rec.ws = ws;
+      ws.onopen = function () {
+        if (rec.done) return;
+        rec.recording = true;
+        startCapture(rec, stream, waveStart);
+        setDictation("recording");
+        armRecordingLimit(rec);
+      };
+      ws.onmessage = function (e) { handleRealtimeEvent(rec, JSON.parse(e.data)); };
+      ws.onclose = function () { finishDictation(rec, rec.stopping ? null : rec.recording ? "Connection lost" : "Transcription unavailable"); };
+    }).catch(function (err) {
+      var msg;
+      if (err && err.name === "NotAllowedError") msg = "Microphone access denied";
+      else if (err && (err.name === "NotFoundError" || err.name === "NotReadableError")) msg = "Microphone unavailable";
+      else if (err instanceof TypeError) msg = "Offline";
+      else msg = (err && err.message) || "Transcription unavailable";
+      finishDictation(rec, msg);
+    });
+  }
+
+  // Level graph plus PCM capture. The worklet hands over Float32 blocks at the device rate;
+  // they are resampled to 24 kHz, converted to Int16 and sent in 200 ms batches.
+  function startCapture(rec, stream, waveStart) {
+    var audioCtx = rec.audioCtx;
+    var source = audioCtx.createMediaStreamSource(stream);
+    var analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    var buf = new Uint8Array(analyser.fftSize);
+    // newest first; seeded with the waiting wave's current shape so the handover is seamless
+    var samples = [];
+    var elapsedS = (performance.now() - waveStart) / 1000;
+    for (var k0 = 0; k0 < 400; k0++) samples.push(waveLevel(k0, elapsedS));
+    var lastSample = performance.now();
+    var smoothed = 0;
+    var barColor = C.text;
+    var draw = function (now) {
+      rec.raf = requestAnimationFrame(draw);
+      analyser.getByteTimeDomainData(buf);
+      var sum = 0;
+      for (var i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; sum += v * v; }
+      var level = Math.min(1, Math.sqrt(sum / buf.length) * 4);
+      smoothed = level > smoothed ? level : smoothed * 0.7 + level * 0.3; // quick attack, soft decay
+      while (now - lastSample >= LEVEL_MS) { samples.unshift(smoothed); samples.pop(); lastSample += LEVEL_MS; }
+      // newest bar slides in from the right edge
+      drawLevelBars(barColor, ((now - lastSample) / LEVEL_MS) * LEVEL_PITCH, function (k) { return samples[k] || 0; });
+    };
+    rec.raf = requestAnimationFrame(draw);
+
+    var step = audioCtx.sampleRate / PCM_RATE;
+    var carry = new Float32Array(0), frac = 0; // input samples not yet consumed, and the read position into them
+    var queue = [], queued = 0;
+    var flush = function () {
+      if (queued && rec.ws && rec.ws.readyState === 1) {
+        var all = new Int16Array(queued), off = 0;
+        queue.forEach(function (c) { all.set(c, off); off += c.length; });
+        rec.ws.send(JSON.stringify({ type: "input_audio_buffer.append", audio: pcmBase64(all) }));
+        rec.sent = true;
+      }
+      queue = []; queued = 0;
+    };
+    rec.flush = flush;
+    var pushPcm = function (block) {
+      var input = new Float32Array(carry.length + block.length);
+      input.set(carry); input.set(block, carry.length);
+      var n = Math.max(0, Math.ceil((input.length - 1 - frac) / step));
+      var out = new Int16Array(n);
+      for (var j = 0; j < n; j++) {
+        var p = frac + j * step, i = Math.floor(p), t = p - i;
+        var s = input[i] * (1 - t) + input[i + 1] * t;
+        out[j] = s <= -1 ? -32768 : s >= 1 ? 32767 : Math.round(s * 32767);
+      }
+      var next = frac + n * step, consumed = Math.floor(next);
+      carry = input.slice(consumed); frac = next - consumed;
+      queue.push(out); queued += n;
+      if (queued >= PCM_RATE / 5) flush();
+    };
+    var attach = function (node) { source.connect(node); node.connect(audioCtx.destination); };
+    var attachScriptProcessor = function () {
+      var node = audioCtx.createScriptProcessor(4096, 1, 1);
+      node.onaudioprocess = function (e) { pushPcm(e.inputBuffer.getChannelData(0)); };
+      attach(node);
+    };
+    if (audioCtx.audioWorklet) {
+      var url = URL.createObjectURL(new Blob([PCM_WORKLET], { type: "application/javascript" }));
+      audioCtx.audioWorklet.addModule(url).then(function () {
+        if (rec.done) return;
+        var node = new AudioWorkletNode(audioCtx, "huxa-pcm");
+        node.port.onmessage = function (e) { pushPcm(e.data); };
+        attach(node);
+      }).catch(attachScriptProcessor);
+    } else attachScriptProcessor();
+    audioCtx.resume();
+  }
+
+  function segmentFor(rec, itemId) {
+    for (var i = 0; i < rec.segments.length; i++) if (rec.segments[i].id === itemId) return rec.segments[i];
+    var seg = { id: itemId, text: "" };
+    rec.segments.push(seg);
+    return seg;
+  }
+
+  function liveTextOf(rec) {
+    return rec.segments.map(function (s) { return s.text.trim(); }).filter(Boolean).join(" ");
+  }
+
+  function handleRealtimeEvent(rec, msg) {
+    if (msg.type === "conversation.item.input_audio_transcription.delta") {
+      segmentFor(rec, msg.item_id).text += msg.delta || "";
+      setLiveText(liveTextOf(rec));
+    } else if (msg.type === "conversation.item.input_audio_transcription.completed") {
+      segmentFor(rec, msg.item_id).text = msg.transcript || "";
+      setLiveText(liveTextOf(rec));
+      if (rec.stopping) finishDictation(rec, null);
+    } else if (msg.type === "error" || msg.type === "conversation.item.input_audio_transcription.failed") {
+      // Mid-take errors are not fatal (the session closes the socket when they are); after
+      // stop, settle for the live draft
+      if (rec.stopping) finishDictation(rec, null);
+      else console.warn("realtime", msg.error);
+    }
   }
 
   function armRecordingLimit(rec) {
@@ -557,16 +653,45 @@ function AppContent() {
 
   function stopDictation(cancel) {
     var rec = recorderRef.current;
-    if (!rec) return;
-    if (!rec.recorder) {
-      // Mic not open yet: nothing is recorded, so stop and cancel both just close the bar
-      rec.cancelled = true;
-      recorderRef.current = null;
-      setDictation(null);
-      return;
-    }
-    rec.cancelled = !!cancel;
-    if (rec.recorder.state !== "inactive") rec.recorder.stop();
+    if (!rec || rec.stopping) return;
+    // Nothing recorded before the session is open, so stop and cancel both just close the bar
+    if (cancel || !rec.recording) { rec.cancelled = true; finishDictation(rec, null); return; }
+    rec.stopping = true;
+    clearTimeout(rec.limit);
+    clearInterval(rec.countdown);
+    setDictationPrompt(null);
+    cancelAnimationFrame(rec.raf);
+    rec.stream.getTracks().forEach(function (t) { t.stop(); });
+    rec.flush();
+    rec.audioCtx.close();
+    rec.closed = true;
+    setDictation("transcribing");
+    if (!rec.sent) { finishDictation(rec, null); return; }
+    rec.ws.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+    rec.finalTimer = setTimeout(function () { finishDictation(rec, null); }, FINAL_WAIT_MS);
+  }
+
+  // Tears everything down and hands the text over. Runs once per take, from stop, cancel,
+  // the final transcript, a lost connection or a failed start.
+  function finishDictation(rec, errMsg) {
+    if (rec.done) return;
+    rec.done = true;
+    clearTimeout(rec.limit);
+    clearInterval(rec.countdown);
+    clearTimeout(rec.finalTimer);
+    cancelAnimationFrame(rec.raf);
+    if (rec.stream) rec.stream.getTracks().forEach(function (t) { t.stop(); });
+    if (!rec.closed) { rec.closed = true; rec.audioCtx.close(); }
+    if (rec.ws) { rec.ws.onclose = null; rec.ws.onmessage = null; if (rec.ws.readyState < 2) rec.ws.close(); }
+    if (recorderRef.current === rec) recorderRef.current = null;
+    setDictationPrompt(null);
+    setDictation(null);
+    setLiveText("");
+    if (rec.cancelled) return;
+    if (errMsg) showToastMsg(errMsg, "error");
+    var text = liveTextOf(rec);
+    if (text) rec.onText(text);
+    else if (!errMsg) showToastMsg("Nothing heard", "error");
   }
 
   // Quick log from the home screen: dictate, then save as an event straight away
@@ -584,34 +709,21 @@ function AppContent() {
       });
   }
 
-  function transcribeBlob(blob, onText) {
-    setDictation("transcribing");
-    var type = (blob.type || "").split(";")[0];
-    var ext = type === "audio/mp4" ? "mp4" : type === "audio/ogg" ? "ogg" : "webm";
-    var formData = new FormData();
-    formData.append("file", blob, "recording." + ext);
-    fetch(API_BASE + "/transcribe", { method: "POST", headers: bearerHeader(), body: formData })
-      .then(function (res) {
-        if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); });
-        return res.json();
-      })
-      .then(function (data) {
-        if (data.text) onText(data.text);
-        else showToastMsg("Nothing heard", "error");
-      })
-      .catch(function (err) { showToastMsg(err.message || "Transcription failed", "error"); })
-      .finally(function () { setDictation(null); });
-  }
-
   // Leaving a screen mid-recording drops the take rather than inserting it somewhere else
   useEffect(function () { stopDictation(true); }, [screen]);
+
+  // Keep the newest words in view while the live transcript grows
+  useEffect(function () {
+    var el = liveInputRef.current;
+    if (el && typeof el.scrollTop === "number") el.scrollTop = el.scrollHeight;
+  }, [liveText]);
 
   function appendText(prev, text) {
     return prev && prev.trim() ? prev.replace(/\s+$/, "") + " " + text : text;
   }
 
-  // A TextInput with a mic button in its right edge. While recording the box turns into
-  // cancel (left), a level graph and stop (right); the transcript is appended via onText.
+  // Cancel (left), level graph, stop (right). Shows the waiting wave while the mic opens and
+  // while the final transcript is on its way, and the "Still talking?" prompt at the time limit.
   function renderDictateBar(style) {
     if (dictation === "transcribing") {
       return <View style={[style, st.dictateBar]}><WaveBars color={C.muted} margin={0} /></View>;
@@ -631,9 +743,19 @@ function AppContent() {
     );
   }
 
+  // A TextInput with a mic button in its right edge. While dictating the field stays, grows to
+  // about DICTATE_LINES lines and shows the live transcript appended to its text, read-only,
+  // with the dictate bar below it. The transcript is appended for real via onText at the end.
   function renderDictateInput(props, onText) {
     if (!DICTATION_SUPPORTED) return <TextInput {...props} />;
-    if (dictation) return renderDictateBar(props.style);
+    if (dictation) {
+      return (
+        <View style={st.dictateWrap}>
+          <TextInput {...props} ref={liveInputRef} editable={false} value={appendText(props.value, liveText)} placeholder="Listening..." style={[props.style, st.liveArea]} />
+          {renderDictateBar(st.input)}
+        </View>
+      );
+    }
     return (
       <View style={st.dictateWrap}>
         <TextInput {...props} style={[props.style, { paddingRight: 48 }]} />
@@ -1044,6 +1166,12 @@ function AppContent() {
             <TouchableOpacity style={[st.btn, st.btnSecondary, st.quickLogBtn]} onPress={function () { if (needsToken()) setScreen("token"); else { setQuickLogged(null); startDictation(quickLog); } }}><MicIcon color={C.text} /><Text style={st.btnText}>Quick log</Text></TouchableOpacity>)}
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
         </View>
+        {dictation && (
+          <View style={[st.summaryBox, { marginTop: 16, marginBottom: 0 }]}>
+            <Text style={st.labelSmall}>{dictation === "transcribing" ? "Finishing" : "Listening"}</Text>
+            <Text style={st.summaryText}>{liveText || "..."}</Text>
+          </View>
+        )}
         {quickLogged && (
           <View style={[st.summaryBox, { marginTop: 16, marginBottom: 0 }]}>
             <Text style={st.labelSmall}>{quickLogged.offline ? "Saved offline as " + quickLogged.event.type : "Logged as " + quickLogged.event.type}</Text>

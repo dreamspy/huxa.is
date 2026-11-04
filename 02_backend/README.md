@@ -52,6 +52,7 @@ The default list includes a Sleep category with `sleep_quality` and `rested` (sc
 | GET | `/health` | No | Health check; also reports `auth_required` |
 | POST | `/query` | Bearer token | Ask a question about events and diary (OpenAI). Body: `{"question": "...", "effort": "low" \| "mid" \| "high"}`, default `mid`. The answer is Markdown, which the app renders |
 | POST | `/transcribe` | Bearer token | Speech to text (OpenAI). Multipart `file` with an audio clip (webm, mp4, m4a, mp3, ogg, wav, flac; max 25 MB), returns `{"text": "..."}` |
+| POST | `/transcribe/session` | Bearer token | Mints a short-lived client secret for a live OpenAI Realtime transcription session, returns `{"client_secret": "ek_...", "expires_at": <unix seconds>}`. The app uses this for dictation |
 | GET | `/attachments/{filename}` | No | Serve uploaded attachment images |
 
 ### Query effort tiers
@@ -74,11 +75,23 @@ changing the tier models or the prompt.
 
 ### Transcription
 
-`POST /transcribe` forwards the clip as-is to OpenAI's transcription API; the model is
-`TRANSCRIBE_MODEL` in `app/main.py` (`gpt-4o-transcribe`). The app records in the browser with
-MediaRecorder (Safari sends `audio/mp4`, Chrome and Firefox `audio/webm`) and appends the returned
-text to the field being edited. The file extension passed to OpenAI is derived from the part's
-content type, so the client's filename does not matter. Language is auto-detected.
+Dictation in the app is live: `POST /transcribe/session` creates a client secret with
+`client.realtime.client_secrets.create` for a `transcription` session (model
+`TRANSCRIBE_LIVE_MODEL`, `gpt-live-transcribe`, expected languages `TRANSCRIBE_LIVE_LANGUAGES`,
+Icelandic and English, no server turn detection, near-field noise reduction). The secret is good
+for `TRANSCRIBE_SESSION_SECRET_S` (120 s) to open a session; the session itself may run longer.
+The browser then connects straight to `wss://api.openai.com/v1/realtime` with the secret as the
+`openai-insecure-api-key.<secret>` WebSocket subprotocol, streams mono 16-bit PCM at 24 kHz in
+`input_audio_buffer.append` events and receives
+`conversation.item.input_audio_transcription.delta` events while the user speaks. Stop sends
+`input_audio_buffer.commit`; the `...completed` event carries the final text. The audio never
+passes through this server. Measured on the server: deltas arrive word by word about a second
+behind the speech, the final text about half a second after the commit.
+
+`POST /transcribe` is the older clip upload and still works: it forwards the clip as-is to
+OpenAI's transcription API with `TRANSCRIBE_MODEL` (`gpt-4o-transcribe`). The file extension
+passed to OpenAI is derived from the part's content type, so the client's filename does not
+matter. Language is auto-detected.
 
 ## Local Development
 
@@ -127,5 +140,5 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 | `HUXA_CATEGORIES_FILE` | Path to categories.json (default: `/var/lib/huxa/categories.json`) |
 | `HUXA_ATTACHMENTS_DIR` | Path to attachments directory (default: `/var/lib/huxa/attachments`) |
 | `HUXA_AUTH_TOKEN` | Bearer token for authentication. Empty disables auth (local dev only): `/health` then reports `auth_required: false` and the app skips the token screen |
-| `OPENAI_API_KEY` | OpenAI API key (required for `/query`, `/diary/{date}/summary`, `/diary/parse-text`, `/transcribe`) |
+| `OPENAI_API_KEY` | OpenAI API key (required for `/query`, `/diary/{date}/summary`, `/diary/parse-text`, `/transcribe`, `/transcribe/session`) |
 | `HUXA_CONFIG` | Path to config.json (optional) |

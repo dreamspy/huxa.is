@@ -2,6 +2,13 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.6 — 2026-11-04
+
+- Dictation shows the transcript while you speak: the mic streams audio to an OpenAI Realtime transcription session (Icelandic and English) and the words appear in the field as they are spoken.
+- The field stays visible while dictating, grows to seven lines and follows the newest words; cancel, level graph and stop sit in a bar below. Stop replaces the live draft with the final transcript.
+- Quick log shows the live text under the bar.
+- New `POST /transcribe/session` mints a short-lived client secret; the audio goes straight from the browser to OpenAI. `POST /transcribe` stays but the app no longer uses it.
+
 ## v0.5.5 — 2026-11-04
 
 - Diary quick entry parses dictated text with the mid tier model (gpt-5-mini, low reasoning) instead of gpt-4o-mini, so details are less likely to be dropped when sorting a day into fields.
