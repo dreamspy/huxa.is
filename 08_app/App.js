@@ -25,7 +25,31 @@ import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.3";
+const APP_VERSION = "0.5.4";
+
+// On web the token is also kept in a cookie on the parent domain (huxa.is), so a
+// token entered on huxa.is is picked up by the dev-<topic>.huxa.is previews and
+// the other way round. localStorage is per origin and would ask again on each.
+var TOKEN_COOKIE = "huxa_token";
+
+function tokenCookieDomain() {
+  var host = window.location.hostname;
+  var parts = host.split(".");
+  if (parts.length < 2 || /^[\d.]+$/.test(host)) return "";
+  return "; Domain=" + parts.slice(-2).join(".");
+}
+
+function readTokenCookie() {
+  if (Platform.OS !== "web" || typeof document === "undefined") return "";
+  var m = document.cookie.match(new RegExp("(?:^|; )" + TOKEN_COOKIE + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : "";
+}
+
+function writeTokenCookie(t) {
+  if (Platform.OS !== "web" || typeof document === "undefined") return;
+  var secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = TOKEN_COOKIE + "=" + encodeURIComponent(t) + "; Path=/; Max-Age=315360000; SameSite=Lax" + secure + tokenCookieDomain();
+}
 // Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
 // Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
 const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
@@ -400,8 +424,10 @@ function AppContent() {
 
   useEffect(function () {
     var envToken = process.env.EXPO_PUBLIC_AUTH_TOKEN;
+    var cookieToken = readTokenCookie();
     if (envToken) { setToken(envToken); }
-    else { AsyncStorage.getItem("huxa_token").then(function (t) { if (t) setToken(t); }); }
+    else if (cookieToken) { setToken(cookieToken); AsyncStorage.setItem("huxa_token", cookieToken); }
+    else { AsyncStorage.getItem("huxa_token").then(function (t) { if (t) { setToken(t); writeTokenCookie(t); } }); }
     AsyncStorage.getItem("huxa_color_profile").then(function (p) { if (p && COLOR_PROFILES[p]) setColorProfile(p); });
     AsyncStorage.getItem("huxa_query_effort").then(function (e) { if (QUERY_EFFORTS.some(function (o) { return o.key === e; })) setQueryEffort(e); });
     AsyncStorage.getItem("huxa_categories").then(function (val) {
@@ -632,6 +658,7 @@ function AppContent() {
     var t = tokenInput.trim();
     if (t) {
       AsyncStorage.setItem("huxa_token", t);
+      writeTokenCookie(t);
       setToken(t);
       showToastMsg("Token saved", "success");
       setScreen("idle");

@@ -24,7 +24,7 @@ The model is the one from the Mac: one integrator session, any number of feature
 ## The loop
 
 1. In a new session: `/worktree-feature <what you want>`. The reply ends with **Test it** carrying the preview URL and a **Handover** block.
-2. Test on the phone at `https://dev-<topic>.huxa.is`. The token is the production one. The preview runs on a copy of the production data taken when it was first built, so anything logged there stays out of production.
+2. Test on the phone at `https://dev-<topic>.huxa.is`. The token is the production one, and the app shares it between huxa.is and the previews through a cookie on `huxa.is`, so a browser that is already logged in on huxa.is needs no token there. The preview runs on a copy of the production data taken when it was first built, so anything logged there stays out of production.
 3. Follow up in the same session until it is right. Each change is rebuilt into the preview, about half a minute.
 4. In the integrator session: `ship <topic>`, or paste the handover block. It asks which version digit to bump, updates the changelog, merges into main, runs `05_scripts/deploy.sh`, removes the preview and the worktree, and tells you to reload huxa.is. One feature at a time.
 

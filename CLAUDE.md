@@ -99,7 +99,7 @@ Bootstrap (run from inside the worktree):
     ln -s /opt/huxa/02_backend/venv 02_backend/venv
 Dev server: none. Previews are static builds served by nginx. From inside the worktree:
     /opt/huxa/05_scripts/preview.sh up
-prints `https://dev-<topic>.huxa.is`. Run it again after every change the user should see; a build takes about half a minute and nothing hot-reloads. The preview backend runs on a copy of production data taken on the first `up`, with the production token. Give the user the URL in the Test it section.
+prints `https://dev-<topic>.huxa.is`. Run it again after every change the user should see; a build takes about half a minute and nothing hot-reloads. The preview backend runs on a copy of production data taken on the first `up`, with the production token; the web app shares that token with huxa.is through a cookie on the parent domain, so a phone logged in on huxa.is needs no token on a preview. Give the user the URL in the Test it section.
 Tests, safe beside other sessions: none, there is no test suite. Check the preview on the phone or with curl against the URL.
 Tests, full (integrator only): none.
 Do not: write under `/var/lib/huxa`; edit or commit in `/opt/huxa` except in the Ship step; install into `/opt/huxa/08_app/node_modules` or the shared venv (give the worktree its own venv if a backend dependency changes); run `deploy.sh` from a worktree.
