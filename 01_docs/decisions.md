@@ -56,6 +56,7 @@ All decisions listed here are **locked** for v1 unless explicitly revisited.
 | Category selection before entry                                 | Locked |
 | One-sentence text entry                                         | Locked |
 | Client-side keyboard input (Whisper later)                      | Locked |
+| Dictation: browser MediaRecorder, transcribed server-side by OpenAI (`POST /transcribe`), text inserted into the field for editing | Locked |
 
 ## Infrastructure
 

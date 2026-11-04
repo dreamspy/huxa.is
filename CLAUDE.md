@@ -26,6 +26,7 @@
 - Phase 1 auth is simple bearer token. An empty `HUXA_AUTH_TOKEN` disables auth (local dev only): `/health` reports `auth_required: false` and the app skips the token screen
 - Event categories are user-defined, stored in `/var/lib/huxa/categories.json`, managed in-app via `GET/PUT /categories` (add, toggle, reorder, delete). Historical events are unaffected by category changes; they store the type string directly.
 - `POST /query` has three effort tiers (`low`, `mid`, `high`, default `mid`) mapped to OpenAI models in `QUERY_MODELS` in `02_backend/app/main.py`. Measured speed and accuracy are in `02_backend/README.md`; re-run that benchmark before changing the tier models.
+- `POST /transcribe` takes a multipart audio clip and returns text via OpenAI (`TRANSCRIBE_MODEL` in `02_backend/app/main.py`). The app's mic button inside the text fields (compose, diary text answers, Ask HuXa) records with the browser's MediaRecorder, shows a level graph with cancel and stop, asks "Still talking?" after 5 minutes (10 s to answer, otherwise it stops and transcribes), and appends the result to the field. Quick log on the home screen dictates, saves an Event straight away and shows the transcript with an Edit button. Web only for now, native shows no button.
 - Categories can define structured fields (`scale` 1–10, `number`, `boolean`, `text`). Field values are stored in `event.metrics` keyed by field key. The diary is separate and stays hardcoded (rolling daily questions).
 - Sleep is logged as events of the default `Sleep` category: `metrics.sleep_quality` and `metrics.rested` (both scale 1–10), `metrics.sleep_hours` (number), `metrics.dreams` (text), comment in `text`. The Apple Watch sleep score is not typed in; early events carry a `metrics.sleep_score`, newer ones do not. Defaults in `DEFAULT_CATEGORIES` (backend `main.py` and `08_app/App.js`) only seed a missing `categories.json`.
 
@@ -81,6 +82,7 @@
 | `04_infrastructure/systemd/huxa-preview@.service` | Preview backend, systemd user unit for `huxadev` |
 | `04_infrastructure/sudo/` | Root half of a deploy and the sudoers rule for `huxadev` |
 | `CHANGELOG.md` | Version history and release notes |
+| `.claude/settings.json` | Claude Code permissions: auto mode, `/opt/huxa-dev` in scope, routine commands allowed, force push and deploy still ask, production data and sudo denied |
 
 ## Worktree
 

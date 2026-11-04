@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "defaultMode": "auto",
+    "additionalDirectories": ["/opt/huxa-dev"],
+    "allow": [
+      "Bash(git *)",
+      "Bash(/opt/huxa/05_scripts/preview.sh *)",
+      "Bash(npx expo *)",
+      "Bash(npm run *)",
+      "Bash(curl *)",
+      "WebFetch(domain:huxa.is)",
+      "WebFetch(domain:*.huxa.is)"
+    ],
+    "ask": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean *)",
+      "Bash(git branch -D *)",
+      "Bash(05_scripts/deploy.sh*)",
+      "Bash(/opt/huxa/05_scripts/deploy.sh*)",
+      "Bash(rm -r*)"
+    ],
+    "deny": [
+      "Edit(//var/lib/huxa/**)",
+      "Edit(//etc/**)",
+      "Edit(//opt/huxa/08_app/node_modules/**)",
+      "Bash(sudo *)",
+      "Bash(systemctl *)"
+    ]
+  },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Shared Ubuntu server running production huxa.is. Code in /opt/huxa (main checkout) and /opt/huxa-dev/<topic> (worktrees). Production data in /var/lib/huxa is owned by another user and must never be written. Previews are built with /opt/huxa/05_scripts/preview.sh."
+    ],
+    "hard_deny": [
+      "$defaults",
+      "Never write under /var/lib/huxa, /etc, or /opt/huxa/08_app/node_modules.",
+      "Never run deploy.sh from a worktree; it only runs from /opt/huxa during a ship."
+    ]
+  }
+}

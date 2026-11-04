@@ -2,6 +2,21 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.2 — 2026-11-04
+
+- On web the content is capped at a 600px column and the side gutter grows with the window, so wide desktop windows no longer stretch the app edge to edge
+
+## v0.5.1 — 2026-11-04
+
+- Ask HuXa answers come back in Markdown and the app renders them: bold, italics, code, links, headings, lists and narrow tables. Simple lookups stay one or two sentences; open questions get a structured answer with a short takeaway
+
+## v0.5.0 — 2026-11-02
+
+- Dictation in text fields (compose, diary text answers, Ask HuXa): a mic button records in the browser, shows a live level graph with cancel and stop, and appends the transcript to the field. After 5 minutes it asks "Still talking?" and stops and transcribes if there is no answer within 10 s. Web only for now
+- Quick log on the home screen: dictate, the transcript is saved as an Event straight away and shown with an Edit button
+- New `POST /transcribe` endpoint (bearer token, multipart audio up to 25 MB) that transcribes with OpenAI `gpt-4o-transcribe`. Nginx routes `/transcribe` with a 25 MB body limit, previews too
+- Delete button on the edit event screen
+
 ## v0.4.9 — 2026-11-02
 
 - Fix toggling a category on or off dropping its structured fields

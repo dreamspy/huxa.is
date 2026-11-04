@@ -21,10 +21,50 @@ import NetInfo from "@react-native-community/netinfo";
 import * as SystemUI from "expo-system-ui";
 import * as ImagePicker from "expo-image-picker";
 import Tetris from "./Tetris";
+import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.4.9";
+const APP_VERSION = "0.5.2";
+// Dictation records in the browser with MediaRecorder and sends the clip to POST /transcribe.
+// Needs a secure context (https or localhost) for getUserMedia. Not wired up for native yet.
+const DICTATION_SUPPORTED = Platform.OS === "web" && typeof navigator !== "undefined" && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof MediaRecorder !== "undefined";
+// Level graph: one bar per LEVEL_MS of audio, newest at the right edge, scrolled left between samples
+const LEVEL_MS = 70, LEVEL_PITCH = 6, LEVEL_BAR_W = 3, LEVEL_MIN_H = 4, LEVEL_MAX_H = 26;
+// After MAX_RECORD_MS the bar asks "Still talking?" for PROMPT_S seconds while recording continues;
+// no answer stops and transcribes, Yes grants another MAX_RECORD_MS
+const MAX_RECORD_MS = 5 * 60 * 1000, PROMPT_S = 10;
+// Waiting wave (mic opening, transcribing) is a CSS animation: it keeps moving while the main
+// thread is busy handing over the microphone, which a canvas loop cannot.
+const WAVE_PERIOD_S = 1.2, WAVE_STAGGER_S = 0.06, WAVE_BARS = 120;
+if (DICTATION_SUPPORTED) {
+  var waveStyle = document.createElement("style");
+  waveStyle.textContent = "@keyframes huxa-wave{0%,100%{transform:scaleY(" + (LEVEL_MIN_H / LEVEL_MAX_H) + ")}50%{transform:scaleY(1)}}";
+  document.head.appendChild(waveStyle);
+}
+function waveLevel(k, elapsedS) {
+  // Same shape as the CSS keyframes: bar k (from the right) runs WAVE_STAGGER_S ahead per bar
+  var p = ((elapsedS + k * WAVE_STAGGER_S) % WAVE_PERIOD_S) / WAVE_PERIOD_S;
+  return 0.5 - 0.5 * Math.cos(2 * Math.PI * p);
+}
+function WaveBars(props) {
+  var bars = [];
+  for (var k = 0; k < WAVE_BARS; k++) {
+    bars.push(<span key={k} style={{ flex: "none", width: LEVEL_BAR_W, height: LEVEL_MAX_H, margin: "0 " + ((LEVEL_PITCH - LEVEL_BAR_W) / 2) + "px", borderRadius: 1.5, background: props.color, transformOrigin: "center", animation: "huxa-wave " + WAVE_PERIOD_S + "s ease-in-out infinite", animationDelay: (-(WAVE_BARS - 1 - k) * WAVE_STAGGER_S) + "s" }} />);
+  }
+  return <div style={{ flex: 1, minWidth: 0, height: 28, marginLeft: props.margin, marginRight: props.margin, display: "flex", alignItems: "center", justifyContent: "flex-end", overflow: "hidden" }}>{bars}</div>;
+}
+function MicIcon(props) {
+  var c = props.color;
+  return (
+    <View style={{ width: 22, height: 22, alignItems: "center" }}>
+      <View style={{ width: 8, height: 13, borderRadius: 4, backgroundColor: c }} />
+      <View style={{ position: "absolute", top: 7, width: 16, height: 10, borderWidth: 2, borderTopWidth: 0, borderColor: c, borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }} />
+      <View style={{ position: "absolute", top: 17, width: 2, height: 3, backgroundColor: c }} />
+      <View style={{ position: "absolute", top: 20, width: 10, height: 2, borderRadius: 1, backgroundColor: c }} />
+    </View>
+  );
+}
 
 const COLOR_PROFILES = {
   dark: {
@@ -75,10 +115,14 @@ var QUERY_EFFORTS = [
   { key: "high", label: "High", hint: "10-20s. When the answer has to be exact, or for patterns across months." },
 ];
 
+// On web the content column is capped at 600px; the gutter grows with the window beyond that.
+var GUTTER = Platform.OS === "web" ? "max(20px, 50vw - 300px)" : 20;
+var NEG_GUTTER = Platform.OS === "web" ? "min(-20px, 300px - 50vw)" : -20;
+
 function makeStyles(C) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: 20 },
-    scroll: { alignSelf: "stretch", marginHorizontal: -20 },
+    container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: GUTTER },
+    scroll: { alignSelf: "stretch", marginHorizontal: NEG_GUTTER },
     scrollInset: { paddingHorizontal: 20 },
     scrollContent: { alignItems: "center", paddingBottom: 40, width: "100%" },
     title: { fontSize: 28, color: C.text, fontWeight: "300", marginTop: 20, marginBottom: 20, letterSpacing: 2 },
@@ -155,6 +199,20 @@ function makeStyles(C) {
     toastSuccess: { backgroundColor: C.success },
     toastError: { backgroundColor: C.error },
     toastText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+    dictateWrap: { width: "100%" },
+    quickLogBtn: { flexDirection: "row", justifyContent: "center", gap: 10 },
+    quickLogBar: { paddingHorizontal: 12 },
+    dictateMic: { position: "absolute", right: 10, bottom: 22, width: 30, height: 30, alignItems: "center", justifyContent: "center" },
+    dictateBar: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    dictateIconBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.surface, alignItems: "center", justifyContent: "center" },
+    dictateX: { width: 14, height: 14, alignItems: "center", justifyContent: "center" },
+    dictateXBar: { position: "absolute", width: 16, height: 2.5, borderRadius: 1.5, backgroundColor: C.text },
+    dictateStop: { width: 13, height: 13, borderRadius: 3, backgroundColor: C.text },
+    dictateHint: { color: C.muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 },
+    dictatePrompt: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, marginHorizontal: 10 },
+    dictatePromptText: { color: C.text, fontSize: 14, fontWeight: "600" },
+    dictatePromptBtn: { backgroundColor: C.accent, borderRadius: 15, paddingVertical: 6, paddingHorizontal: 14 },
+    dictatePromptBtnText: { color: C.text, fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 1 },
     confirmOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 20 },
     confirmBox: { backgroundColor: C.surface, borderRadius: 15, padding: 20, width: "100%", maxWidth: 340 },
     confirmTitle: { color: C.text, fontSize: 16, fontWeight: "600", marginBottom: 8 },
@@ -310,6 +368,32 @@ function AppContent() {
   var _cm = useState({}), composeMetrics = _cm[0], setComposeMetrics = _cm[1];
 
   var _cp = useState(DEFAULT_PROFILE), colorProfile = _cp[0], setColorProfile = _cp[1];
+
+  var _dc1 = useState(null), dictation = _dc1[0], setDictation = _dc1[1]; // null | "opening" | "recording" | "transcribing"
+  var _dc3 = useState(null), dictationPrompt = _dc3[0], setDictationPrompt = _dc3[1]; // seconds left to answer "Still talking?"
+  var recorderRef = useRef(null);
+  var levelCanvasRef = useRef(null);
+  var _ql = useState(null), quickLogged = _ql[0], setQuickLogged = _ql[1]; // { event, offline } shown on the home screen after a quick log
+
+  // Sizes the level canvas for the device pixel ratio and draws one bar per LEVEL_PITCH px,
+  // right to left, with the height from levelAt(k, x) in 0..1. k is the bar index from the right.
+  function drawLevelBars(color, offset, levelAt) {
+    var canvas = levelCanvasRef.current;
+    if (!canvas) return;
+    var dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = color;
+    var x = w - offset;
+    for (var k = 0; x + LEVEL_BAR_W > 0; k++, x -= LEVEL_PITCH) {
+      var bh = LEVEL_MIN_H + Math.max(0, Math.min(1, levelAt(k, x))) * (LEVEL_MAX_H - LEVEL_MIN_H);
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, (h - bh) / 2, LEVEL_BAR_W, bh, 1.5); ctx.fill(); }
+      else ctx.fillRect(x, (h - bh) / 2, LEVEL_BAR_W, bh);
+    }
+  }
   var osScheme = useColorScheme();
   var C = useMemo(function () { return getColors(colorProfile, osScheme); }, [colorProfile, osScheme]);
   var st = useMemo(function () { return makeStyles(C); }, [C]);
@@ -350,6 +434,186 @@ function AppContent() {
   function showToastMsg(msg, type) {
     setToast({ msg: msg, type: type });
     setTimeout(function () { setToast(null); }, 3000);
+  }
+
+  // --- DICTATION ---
+  function startDictation(onText) {
+    if (recorderRef.current) return;
+    // Created inside the tap handler: Safari only lets audio start from a user gesture
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var audioCtx = AC ? new AC() : null;
+    // The bar shows at once; the mic takes a moment to open and the bars start moving when it has
+    var rec = { recorder: null, cancelled: false, raf: null };
+    recorderRef.current = rec;
+    var waveStart = performance.now();
+    setDictation("opening");
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      if (rec.cancelled) {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        if (audioCtx) audioCtx.close();
+        return;
+      }
+      // Safari records audio/mp4, Chrome and Firefox audio/webm; OpenAI accepts both
+      var mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0];
+      var recorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
+      var chunks = [];
+      rec.recorder = recorder;
+      if (audioCtx) {
+        var analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        audioCtx.createMediaStreamSource(stream).connect(analyser);
+        var buf = new Uint8Array(analyser.fftSize);
+        // newest first; seeded with the waiting wave's current shape so the handover is seamless
+        var samples = [];
+        var elapsedS = (performance.now() - waveStart) / 1000;
+        for (var k0 = 0; k0 < 400; k0++) samples.push(waveLevel(k0, elapsedS));
+        var lastSample = performance.now();
+        var smoothed = 0;
+        var barColor = C.text;
+        var draw = function (now) {
+          rec.raf = requestAnimationFrame(draw);
+          analyser.getByteTimeDomainData(buf);
+          var sum = 0;
+          for (var i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; sum += v * v; }
+          var level = Math.min(1, Math.sqrt(sum / buf.length) * 4);
+          smoothed = level > smoothed ? level : smoothed * 0.7 + level * 0.3; // quick attack, soft decay
+          while (now - lastSample >= LEVEL_MS) { samples.unshift(smoothed); samples.pop(); lastSample += LEVEL_MS; }
+          // newest bar slides in from the right edge
+          drawLevelBars(barColor, ((now - lastSample) / LEVEL_MS) * LEVEL_PITCH, function (k) { return samples[k] || 0; });
+        };
+        rec.raf = requestAnimationFrame(draw);
+        audioCtx.resume();
+      }
+      recorder.ondataavailable = function (e) { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = function () {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        if (rec.raf) cancelAnimationFrame(rec.raf);
+        clearTimeout(rec.limit);
+        clearInterval(rec.countdown);
+        setDictationPrompt(null);
+        if (audioCtx) audioCtx.close();
+        recorderRef.current = null;
+        if (rec.cancelled) { setDictation(null); return; }
+        transcribeBlob(new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), onText);
+      };
+      setDictation("recording");
+      recorder.start();
+      armRecordingLimit(rec);
+    }).catch(function (err) {
+      if (audioCtx) audioCtx.close();
+      if (rec.cancelled) return;
+      recorderRef.current = null;
+      setDictation(null);
+      showToastMsg(err && err.name === "NotAllowedError" ? "Microphone access denied" : "Microphone unavailable", "error");
+    });
+  }
+
+  function armRecordingLimit(rec) {
+    rec.limit = setTimeout(function () {
+      var left = PROMPT_S;
+      setDictationPrompt(left);
+      rec.countdown = setInterval(function () {
+        left -= 1;
+        if (left > 0) { setDictationPrompt(left); return; }
+        clearInterval(rec.countdown);
+        stopDictation(false);
+      }, 1000);
+    }, MAX_RECORD_MS);
+  }
+
+  function keepTalking() {
+    var rec = recorderRef.current;
+    if (!rec) return;
+    clearInterval(rec.countdown);
+    setDictationPrompt(null);
+    armRecordingLimit(rec);
+  }
+
+  function stopDictation(cancel) {
+    var rec = recorderRef.current;
+    if (!rec) return;
+    if (!rec.recorder) {
+      // Mic not open yet: nothing is recorded, so stop and cancel both just close the bar
+      rec.cancelled = true;
+      recorderRef.current = null;
+      setDictation(null);
+      return;
+    }
+    rec.cancelled = !!cancel;
+    if (rec.recorder.state !== "inactive") rec.recorder.stop();
+  }
+
+  // Quick log from the home screen: dictate, then save as an event straight away
+  function quickLog(text) {
+    var type = enabledCategories.some(function (c) { return c.key === "Event"; }) ? "Event" : (enabledCategories[0] || DEFAULT_CATEGORIES[0]).key;
+    var event = { id: generateUUID(), client_timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), type: type, text: text, metrics: {}, meta: { version: 1 } };
+    fetch(API_BASE + "/events", { method: "POST", headers: authHeaders(), body: JSON.stringify(event) })
+      .then(function (res) {
+        if (!res.ok) return res.json().catch(function () { return {}; }).then(function (body) { throw new Error(body.detail || "HTTP " + res.status); });
+        setQuickLogged({ event: event, offline: false });
+      })
+      .catch(function (err) {
+        if (err instanceof TypeError) { addToQueueFn("event", event); setQuickLogged({ event: event, offline: true }); return; }
+        showToastMsg(err.message || "Network error", "error");
+      });
+  }
+
+  function transcribeBlob(blob, onText) {
+    setDictation("transcribing");
+    var type = (blob.type || "").split(";")[0];
+    var ext = type === "audio/mp4" ? "mp4" : type === "audio/ogg" ? "ogg" : "webm";
+    var formData = new FormData();
+    formData.append("file", blob, "recording." + ext);
+    fetch(API_BASE + "/transcribe", { method: "POST", headers: bearerHeader(), body: formData })
+      .then(function (res) {
+        if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); });
+        return res.json();
+      })
+      .then(function (data) {
+        if (data.text) onText(data.text);
+        else showToastMsg("Nothing heard", "error");
+      })
+      .catch(function (err) { showToastMsg(err.message || "Transcription failed", "error"); })
+      .finally(function () { setDictation(null); });
+  }
+
+  // Leaving a screen mid-recording drops the take rather than inserting it somewhere else
+  useEffect(function () { stopDictation(true); }, [screen]);
+
+  function appendText(prev, text) {
+    return prev && prev.trim() ? prev.replace(/\s+$/, "") + " " + text : text;
+  }
+
+  // A TextInput with a mic button in its right edge. While recording the box turns into
+  // cancel (left), a level graph and stop (right); the transcript is appended via onText.
+  function renderDictateBar(style) {
+    if (dictation === "transcribing") {
+      return <View style={[style, st.dictateBar]}><WaveBars color={C.muted} margin={0} /></View>;
+    }
+    return (
+      <View style={[style, st.dictateBar]}>
+        <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(true); }}><View style={st.dictateX}><View style={[st.dictateXBar, { transform: [{ rotate: "45deg" }] }]} /><View style={[st.dictateXBar, { transform: [{ rotate: "-45deg" }] }]} /></View></TouchableOpacity>
+        {dictation === "opening" ? <WaveBars color={C.muted} margin={10} /> :
+          dictationPrompt !== null ? (
+            <View style={st.dictatePrompt}>
+              <Text style={st.dictatePromptText}>Still talking? {dictationPrompt}</Text>
+              <TouchableOpacity style={st.dictatePromptBtn} onPress={keepTalking}><Text style={st.dictatePromptBtnText}>Yes</Text></TouchableOpacity>
+            </View>
+          ) : <canvas ref={levelCanvasRef} style={{ flex: 1, minWidth: 0, height: 28, marginLeft: 10, marginRight: 10 }} />}
+        <TouchableOpacity style={st.dictateIconBtn} onPress={function () { stopDictation(false); }}><View style={st.dictateStop} /></TouchableOpacity>
+      </View>
+    );
+  }
+
+  function renderDictateInput(props, onText) {
+    if (!DICTATION_SUPPORTED) return <TextInput {...props} />;
+    if (dictation) return renderDictateBar(props.style);
+    return (
+      <View style={st.dictateWrap}>
+        <TextInput {...props} style={[props.style, { paddingRight: 48 }]} />
+        <TouchableOpacity style={st.dictateMic} onPress={function () { startDictation(onText); }}><MicIcon color={C.muted} /></TouchableOpacity>
+      </View>
+    );
   }
 
   function confirmAction(title, message, onConfirm) {
@@ -627,10 +891,10 @@ function AppContent() {
     setEditingEventId(ev.id); setSelectedType(ev.type); setComposeText(ev.text); setComposeDate(new Date(ev.client_timestamp)); setScreen("compose");
   }
 
-  function deleteEvent(ev) {
+  function deleteEvent(ev, onDone) {
     confirmAction("Delete Event", "Are you sure you want to delete this event?", function () {
       fetch(API_BASE + "/events/" + ev.id, { method: "DELETE", headers: authHeaders() })
-        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); doFetchHistory(historyTab, historyDate); })
+        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); showToastMsg("Deleted", "success"); if (onDone) onDone(); doFetchHistory(historyTab, historyDate); })
         .catch(function (err) { showToastMsg(err.message, "error"); });
     });
   }
@@ -749,8 +1013,20 @@ function AppContent() {
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else startDiary(todayStr()); }}><Text style={st.btnText}>Diary</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={openHistory}><Text style={st.btnText}>History</Text></TouchableOpacity>
           <TouchableOpacity style={[st.btn, st.btnSecondary]} onPress={function () { if (needsToken()) setScreen("token"); else { setQueryText(""); setQueryAnswer(""); setScreen("query"); } }}><Text style={st.btnText}>Ask HuXa</Text></TouchableOpacity>
+          {DICTATION_SUPPORTED && (dictation ? renderDictateBar([st.btn, st.btnSecondary, st.quickLogBar]) :
+            <TouchableOpacity style={[st.btn, st.btnSecondary, st.quickLogBtn]} onPress={function () { if (needsToken()) setScreen("token"); else { setQuickLogged(null); startDictation(quickLog); } }}><MicIcon color={C.text} /><Text style={st.btnText}>Quick log</Text></TouchableOpacity>)}
           {queue.length > 0 && <TouchableOpacity style={[st.btn, { backgroundColor: C.input }]} onPress={function () { setScreen("queue"); }}><Text style={st.btnText}>{queue.length} pending</Text></TouchableOpacity>}
         </View>
+        {quickLogged && (
+          <View style={[st.summaryBox, { marginTop: 16, marginBottom: 0 }]}>
+            <Text style={st.labelSmall}>{quickLogged.offline ? "Saved offline as " + quickLogged.event.type : "Logged as " + quickLogged.event.type}</Text>
+            <Text style={st.summaryText}>{quickLogged.event.text}</Text>
+            <View style={st.row}>
+              <TouchableOpacity style={st.btnBack} onPress={function () { setQuickLogged(null); }}><Text style={st.btnBackText}>Done</Text></TouchableOpacity>
+              {!quickLogged.offline && <TouchableOpacity style={st.btnSubmit} onPress={function () { var ev = quickLogged.event; setQuickLogged(null); editEvent(ev); }}><Text style={st.btnSubmitText}>Edit</Text></TouchableOpacity>}
+            </View>
+          </View>
+        )}
         <TouchableOpacity style={st.settingsBtn} onPress={function () { setTokenInput(token); setScreen("token"); }}><Text style={st.settingsBtnText}>Settings</Text></TouchableOpacity>
         <TouchableOpacity style={st.versionBtn} activeOpacity={1} onLongPress={function () { setScreen("tetris"); }}><Text style={st.version}>v{APP_VERSION}</Text></TouchableOpacity>
         {renderToast()}
@@ -991,11 +1267,17 @@ function AppContent() {
               {Platform.OS === "web" ? <WebDateInput colors={C} value={composeDate} mode="time" onChange={function (e, date) { if (date) setComposeDate(date); }} /> : <DateTimePicker value={composeDate} mode="time" display="compact" themeVariant="dark" onChange={function (e, date) { if (date) setComposeDate(date); }} />}
             </View>
             {composeFields.map(renderComposeField)}
-            <TextInput style={[st.input, st.textArea]} placeholder={composeFields.length > 0 ? "Any comments?" : "What happened?"} placeholderTextColor={C.muted} value={composeText} onChangeText={setComposeText} multiline numberOfLines={3} />
+            {renderDictateInput({ style: [st.input, st.textArea], placeholder: composeFields.length > 0 ? "Any comments?" : "What happened?", placeholderTextColor: C.muted, value: composeText, onChangeText: setComposeText, multiline: true, numberOfLines: 3 },
+              function (t) { setComposeText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (editingEventId) { setEditingEventId(null); setScreen("history"); doFetchHistory(historyTab, historyDate); } else setScreen("category"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () { submitEvent(null); }}><Text style={st.btnSubmitText}>Submit</Text></TouchableOpacity>
             </View>
+            {editingEventId && (
+              <View style={st.row}>
+                <TouchableOpacity style={[st.btnBack, { borderColor: C.error }]} onPress={function () { deleteEvent({ id: editingEventId }, function () { setEditingEventId(null); setScreen("history"); }); }}><Text style={[st.btnBackText, { color: C.error }]}>Delete</Text></TouchableOpacity>
+              </View>
+            )}
             {!editingEventId && (
               <View style={st.submitNewSection}>
                 <Text style={st.labelSmall}>Submit & log another</Text>
@@ -1025,15 +1307,8 @@ function AppContent() {
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Ask HuXa</Text>
-            <TextInput
-              style={st.input}
-              placeholder="e.g. How many events this week?"
-              placeholderTextColor={C.muted}
-              value={queryText}
-              onChangeText={setQueryText}
-              returnKeyType="send"
-              onSubmitEditing={submitQuery}
-            />
+            {renderDictateInput({ style: st.input, placeholder: "e.g. How many events this week?", placeholderTextColor: C.muted, value: queryText, onChangeText: setQueryText, returnKeyType: "send", onSubmitEditing: submitQuery },
+              function (t) { setQueryText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               {QUERY_EFFORTS.map(function (e) {
                 return (
@@ -1048,7 +1323,7 @@ function AppContent() {
             </View>
             {queryLoading && <Text style={[st.emptyText, { marginTop: 20 }]}>{queryEffort === "high" ? "Thinking hard, this can take 10-30 seconds..." : "Thinking..."}</Text>}
             {!queryLoading && queryAnswer !== "" && (
-              <View style={[st.summaryBox, { marginTop: 20 }]}><Text style={st.summaryText}>{queryAnswer}</Text></View>
+              <View style={[st.summaryBox, { marginTop: 20 }]}><Markdown text={queryAnswer} style={st.summaryText} colors={C} /></View>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
@@ -1229,15 +1504,8 @@ function AppContent() {
               })}
             </View>
             <View style={{ height: 12 }} />
-            <TextInput
-              style={[st.input, st.textArea, { minHeight: 120 }]}
-              placeholder="Type or dictate your answers..."
-              placeholderTextColor={C.muted}
-              value={bulkText}
-              onChangeText={setBulkText}
-              multiline
-              numberOfLines={6}
-            />
+            {renderDictateInput({ style: [st.input, st.textArea, { minHeight: 120 }], placeholder: "Type or dictate your answers...", placeholderTextColor: C.muted, value: bulkText, onChangeText: setBulkText, multiline: true, numberOfLines: 6 },
+              function (t) { setBulkText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { setScreen("diary-bulk-scales"); }}><Text style={st.btnBackText}>Back</Text></TouchableOpacity>
               <TouchableOpacity style={st.btnSubmit} onPress={function () {
@@ -1288,7 +1556,8 @@ function AppContent() {
             <Text style={st.label}>{q.label}</Text>
             <Text style={st.question}>{q.question}</Text>
             {q.type === "scale" ? renderScaleGrid(q.key, q.min, q.max, function () { if (isLast) setScreen("diary-review"); else setDiaryStep(diaryStep + 1); }) :
-              <TextInput style={[st.input, st.textArea]} placeholder="Type your answer..." placeholderTextColor={C.muted} value={diaryAnswers[q.key] || ""} onChangeText={function (t) { setDiaryAnswer(q.key, t); }} multiline numberOfLines={3} />
+              renderDictateInput({ style: [st.input, st.textArea], placeholder: "Type your answer...", placeholderTextColor: C.muted, value: diaryAnswers[q.key] || "", onChangeText: function (t) { setDiaryAnswer(q.key, t); }, multiline: true, numberOfLines: 3 },
+                function (t) { setDiaryAnswer(q.key, appendText(diaryAnswers[q.key] || "", t)); })
             }
             <View style={st.row}>
               <TouchableOpacity style={st.btnBack} onPress={function () { if (diaryStep > 0) setDiaryStep(diaryStep - 1); else setScreen("diary-summary"); }}><Text style={st.btnBackText}>{diaryStep === 0 ? "Back" : "Prev"}</Text></TouchableOpacity>
