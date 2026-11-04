@@ -235,6 +235,8 @@ const DEFAULT_CATEGORIES = [
   { key: "Sleep", label: "Sleep", enabled: true, fields: [
     { key: "sleep_quality", label: "Sleep quality", type: "scale" },
     { key: "rested", label: "How rested I feel", type: "scale" },
+    { key: "sleep_hours", label: "Hours slept", type: "number" },
+    { key: "dreams", label: "Dreams", type: "boolean" },
   ] },
 ];
 
