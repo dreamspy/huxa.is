@@ -351,7 +351,7 @@ export default function Tetris(props) {
       <View>
         <View style={s.board}>
           {view.map(function (row, r) {
-            return <View key={r} style={s.boardRow}>{row.map(function (entry, c) { return <View key={c} style={cellStyle(entry, cell)} />; })}</View>;
+            return <View key={r} style={s.boardRow}>{row.map(function (entry, c) { return <View key={c + (entry ? (entry.ghost ? "g" : "f") : "e")} style={cellStyle(entry, cell)} />; })}</View>;
           })}
         </View>
         {overlayTitle && (
