@@ -196,8 +196,6 @@ function makeStyles(C) {
     fieldTypePillText: { color: C.muted, fontSize: 12, fontWeight: "600" },
     fieldTypePillTextActive: { color: C.text },
     composeFieldBlock: { width: "100%", marginBottom: 12 },
-    durationRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    durationInput: { width: 80, height: 50, marginBottom: 0, textAlign: "center" },
     metricLine: { color: C.muted, fontSize: 12, marginTop: 2 },
     manageLink: { marginTop: 20 },
     manageLinkText: { color: C.muted, fontSize: 13 },
@@ -1438,19 +1436,30 @@ function AppContent() {
       if (f.type === "duration") {
         var dur = String(composeMetrics[f.key] || ":").split(":");
         var setDur = function (h, mi) { setComposeMetric(f.key, h === "" && mi === "" ? undefined : h + ":" + mi); };
+        var durBtn = function (label, on, onPress) {
+          return <TouchableOpacity key={label} style={[st.scaleBtn, on && st.scaleBtnSelected]} onPress={onPress}><Text style={[st.scaleBtnText, on && st.scaleBtnTextSelected]}>{label}</Text></TouchableOpacity>;
+        };
+        var hourRow = function (from) {
+          return (
+            <View key={from} style={st.scaleRow}>
+              {[0, 1, 2, 3, 4, 5].map(function (i) {
+                var h = String(from + i);
+                return durBtn(h, dur[0] === h, function () { setDur(dur[0] === h ? "" : h, dur[1] || ""); });
+              })}
+            </View>
+          );
+        };
         return (
           <View key={f.key} style={st.composeFieldBlock}>
             <Text style={st.labelSmall}>{f.label}</Text>
-            <View style={st.durationRow}>
-              <TextInput style={[st.input, st.durationInput]} placeholder="HH" placeholderTextColor={C.muted} value={dur[0]} onChangeText={function (t) { setDur(t.replace(/\D/g, ""), dur[1] || ""); }} keyboardType="number-pad" maxLength={2} />
-              {["00", "15", "30", "45"].map(function (mi) {
-                var on = dur[1] === mi;
-                return (
-                  <TouchableOpacity key={mi} style={[st.scaleBtn, on && st.scaleBtnSelected]} onPress={function () { setDur(dur[0], on ? "" : mi); }}>
-                    <Text style={[st.scaleBtnText, on && st.scaleBtnTextSelected]}>{":" + mi}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={st.scaleGrid}>
+              {hourRow(1)}
+              {hourRow(7)}
+              <View style={st.scaleRow}>
+                {["00", "15", "30", "45"].map(function (mi) {
+                  return durBtn(":" + mi, dur[1] === mi, function () { setDur(dur[0], dur[1] === mi ? "" : mi); });
+                })}
+              </View>
             </View>
           </View>
         );
