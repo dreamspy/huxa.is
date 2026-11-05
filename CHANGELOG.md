@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.8 — 2026-11-05
+
+- Dark mode browser extensions (Noir and similar) no longer repaint the app: the page declares its own dark theme, so the dictation cancel and stop icons stay visible.
+
 ## v0.5.7 — 2026-11-05
 
 - Tetris landing shadow is easier to see: a solid 2px outline in the piece colour with a 30% tinted fill, instead of a faint 1px outline.
