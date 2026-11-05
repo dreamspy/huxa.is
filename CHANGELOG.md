@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.10 — 2026-11-05
+
+- Tetris cubes keep full colour after the landing shadow passes over them: the shadow no longer uses opacity, and a board cell is redrawn from scratch when it changes between empty, shadow and cube.
+
 ## v0.5.9 — 2026-11-05
 
 - New `duration` field type: entered as HH:MM with hour buttons 1–12 and :00/:15/:30/:45 buttons, no keyboard, stored as decimal hours (7:30 is `7.5`). The category field editor switches a number field to HH:MM and back.
