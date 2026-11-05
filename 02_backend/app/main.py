@@ -114,8 +114,8 @@ DEFAULT_CATEGORIES = [
         key="Sleep",
         label="Sleep",
         fields=[
-            CategoryField(key="sleep_score", label="Sleep score", type="number"),
-            CategoryField(key="sleep_hours", label="Hours slept", type="duration"),
+            CategoryField(key="sleep_score", label="Sleep score (Apple Watch)", type="number"),
+            CategoryField(key="sleep_hours", label="Hours slept (Apple Watch)", type="duration"),
             CategoryField(key="sleep_quality", label="Sleep quality", type="scale"),
             CategoryField(key="rested", label="How rested I feel", type="scale"),
             CategoryField(key="dreams", label="Dreams", type="text"),
