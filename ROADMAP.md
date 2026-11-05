@@ -101,6 +101,7 @@ Not pursued: native recording (`expo-audio`), the Scribe v2 comparison and a cle
 - [x] Category list cached in AsyncStorage for offline use
 - [x] Per-category structured fields (scale 1–10, number, yes/no, text) with in-app field editor
 - [x] Field values stored in `event.metrics`; shown on compose and history screens
+- [x] Duration field type: entered as HH:MM in 15-minute steps, stored as decimal hours; Sleep "Hours slept" uses it
 
 ### Phase 12 — Feature Ideas / Bug Reports ✅
 
