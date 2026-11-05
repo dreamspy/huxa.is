@@ -25,7 +25,7 @@ import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.6";
+const APP_VERSION = "0.5.7";
 
 // On web the token is also kept in a cookie on the parent domain (huxa.is), so a
 // token entered on huxa.is is picked up by the dev-<topic>.huxa.is previews and
