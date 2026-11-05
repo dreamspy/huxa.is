@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class CategoryField(BaseModel):
     key: str = Field(..., min_length=1, description="Stable identifier used in event.metrics")
     label: str = Field(..., min_length=1, description="Display name shown in the app")
-    type: Literal["scale", "number", "boolean", "text"]
+    type: Literal["scale", "number", "duration", "boolean", "text"]
 
 
 class Category(BaseModel):

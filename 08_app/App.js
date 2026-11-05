@@ -196,6 +196,9 @@ function makeStyles(C) {
     fieldTypePillText: { color: C.muted, fontSize: 12, fontWeight: "600" },
     fieldTypePillTextActive: { color: C.text },
     composeFieldBlock: { width: "100%", marginBottom: 12 },
+    durationRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    durationInput: { width: 80, marginBottom: 0, textAlign: "center" },
+    durationColon: { color: C.text, fontSize: 20, fontWeight: "600" },
     metricLine: { color: C.muted, fontSize: 12, marginTop: 2 },
     manageLink: { marginTop: 20 },
     manageLinkText: { color: C.muted, fontSize: 13 },
@@ -310,6 +313,7 @@ const DIARY_STEPS = SCALE_QUESTIONS.concat(TEXT_QUESTIONS);
 const FIELD_TYPES = [
   { key: "scale", label: "1–10" },
   { key: "number", label: "Number" },
+  { key: "duration", label: "HH:MM" },
   { key: "boolean", label: "Yes/No" },
   { key: "text", label: "Text" },
 ];
@@ -317,6 +321,12 @@ const FIELD_TYPES = [
 function fieldTypeLabel(type) {
   var t = FIELD_TYPES.find(function (x) { return x.key === type; });
   return t ? t.label : type;
+}
+
+function formatDuration(hours) {
+  var mins = Math.round(hours * 60);
+  var m = mins % 60;
+  return Math.floor(mins / 60) + ":" + (m < 10 ? "0" : "") + m;
 }
 
 function slugifyKey(label) {
@@ -332,7 +342,7 @@ const DEFAULT_CATEGORIES = [
   { key: "Sleep", label: "Sleep", enabled: true, fields: [
     { key: "sleep_quality", label: "Sleep quality", type: "scale" },
     { key: "rested", label: "How rested I feel", type: "scale" },
-    { key: "sleep_hours", label: "Hours slept", type: "number" },
+    { key: "sleep_hours", label: "Hours slept", type: "duration" },
     { key: "dreams", label: "Dreams", type: "text" },
   ] },
 ];
@@ -867,6 +877,14 @@ function AppContent() {
     });
   }
 
+  function toggleDurationField(fieldKey) {
+    var cat = categories.find(function (c) { return c.key === editingCategoryKey; });
+    if (!cat) return;
+    updateCategoryFields(editingCategoryKey, (cat.fields || []).map(function (f) {
+      return f.key === fieldKey ? Object.assign({}, f, { type: f.type === "duration" ? "number" : "duration" }) : f;
+    }));
+  }
+
   function moveFieldUp(index) {
     if (index === 0) return;
     var cat = categories.find(function (c) { return c.key === editingCategoryKey; });
@@ -895,6 +913,14 @@ function AppContent() {
       if (f.type === "number") {
         var n = parseFloat(String(v).replace(",", "."));
         if (!isNaN(n)) m[f.key] = n;
+        return;
+      }
+      if (f.type === "duration") {
+        var p = String(v).split(":");
+        var h = parseInt(p[0], 10);
+        var mi = parseInt(p[1], 10);
+        if (isNaN(h) && isNaN(mi)) return;
+        m[f.key] = Math.round(((h || 0) + (mi || 0) / 60) * 100) / 100;
         return;
       }
       if (f.type === "text") {
@@ -1034,7 +1060,8 @@ function AppContent() {
     var stateMetrics = {};
     ((cat && cat.fields) || []).forEach(function (f) {
       if (m[f.key] === undefined) return;
-      stateMetrics[f.key] = f.type === "number" ? String(m[f.key]) : m[f.key];
+      if (f.type === "duration" && typeof m[f.key] === "number") stateMetrics[f.key] = formatDuration(m[f.key]);
+      else stateMetrics[f.key] = f.type === "number" ? String(m[f.key]) : m[f.key];
     });
     setComposeMetrics(stateMetrics);
     setEditingEventId(ev.id); setSelectedType(ev.type); setComposeText(ev.text); setComposeDate(new Date(ev.client_timestamp)); setScreen("compose");
@@ -1344,7 +1371,9 @@ function AppContent() {
                   <TouchableOpacity style={st.categoryMoveBtn} onPress={function () { moveFieldUp(index); }}><Text style={st.categoryMoveBtnText}>{"▲"}</Text></TouchableOpacity>
                   <View style={{ flex: 1 }}>
                     <Text style={[st.categoryManageLabel, { flex: 0 }]}>{f.label}</Text>
-                    <Text style={st.fieldCountText}>{fieldTypeLabel(f.type)}</Text>
+                    {f.type === "number" || f.type === "duration"
+                      ? <TouchableOpacity onPress={function () { toggleDurationField(f.key); }}><Text style={st.fieldCountText}>{fieldTypeLabel(f.type) + " (tap for " + fieldTypeLabel(f.type === "number" ? "duration" : "number") + ")"}</Text></TouchableOpacity>
+                      : <Text style={st.fieldCountText}>{fieldTypeLabel(f.type)}</Text>}
                   </View>
                   <TouchableOpacity style={st.categoryMoveBtn} onPress={function () { deleteField(f.key); }}><Text style={[st.categoryMoveBtnText, { color: C.error }]}>{"✕"}</Text></TouchableOpacity>
                 </View>
@@ -1406,6 +1435,20 @@ function AppContent() {
       }
       if (f.type === "number") {
         return <View key={f.key} style={st.composeFieldBlock}><Text style={st.labelSmall}>{f.label}</Text><TextInput style={[st.input, { marginBottom: 0 }]} placeholder="0" placeholderTextColor={C.muted} value={composeMetrics[f.key] !== undefined ? String(composeMetrics[f.key]) : ""} onChangeText={function (t) { setComposeMetric(f.key, t); }} keyboardType="decimal-pad" /></View>;
+      }
+      if (f.type === "duration") {
+        var dur = String(composeMetrics[f.key] || ":").split(":");
+        var setDur = function (h, mi) { setComposeMetric(f.key, h === "" && mi === "" ? undefined : h + ":" + mi); };
+        return (
+          <View key={f.key} style={st.composeFieldBlock}>
+            <Text style={st.labelSmall}>{f.label}</Text>
+            <View style={st.durationRow}>
+              <TextInput style={[st.input, st.durationInput]} placeholder="HH" placeholderTextColor={C.muted} value={dur[0]} onChangeText={function (t) { setDur(t.replace(/\D/g, ""), dur[1] || ""); }} keyboardType="number-pad" maxLength={2} />
+              <Text style={st.durationColon}>:</Text>
+              <TextInput style={[st.input, st.durationInput]} placeholder="MM" placeholderTextColor={C.muted} value={dur[1] || ""} onChangeText={function (t) { var mi = t.replace(/\D/g, ""); setDur(dur[0], parseInt(mi, 10) > 59 ? dur[1] || "" : mi); }} keyboardType="number-pad" maxLength={2} />
+            </View>
+          </View>
+        );
       }
       return <View key={f.key} style={st.composeFieldBlock}><Text style={st.labelSmall}>{f.label}</Text><TextInput style={[st.input, { marginBottom: 0 }]} placeholder="..." placeholderTextColor={C.muted} value={composeMetrics[f.key] || ""} onChangeText={function (t) { setComposeMetric(f.key, t); }} /></View>;
     };
@@ -1516,9 +1559,9 @@ function AppContent() {
                     <View style={{ marginTop: 2 }}>
                       {Object.keys(ev.metrics).map(function (k) {
                         var v = ev.metrics[k];
-                        var disp = v === true ? "Yes" : v === false ? "No" : String(v);
                         var evCat = categories.find(function (c) { return c.key === ev.type; });
                         var fld = evCat && (evCat.fields || []).find(function (fl) { return fl.key === k; });
+                        var disp = v === true ? "Yes" : v === false ? "No" : fld && fld.type === "duration" && typeof v === "number" ? formatDuration(v) : String(v);
                         return <Text key={k} style={st.metricLine}>{(fld ? fld.label : k) + ": " + disp}</Text>;
                       })}
                     </View>
