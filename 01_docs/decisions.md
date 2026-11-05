@@ -30,7 +30,7 @@ All decisions listed here are **locked** for v1 unless explicitly revisited.
 | `type` is a user-defined category key (defaults: Event, Intervention, Symptom, Decision, Thought, Sleep) | Revised 2026-07-08 |
 | Categories stored in `/var/lib/huxa/categories.json`, managed in-app via `GET/PUT /categories` | Locked |
 | Categories can be toggled off (temporary) or deleted; historical events keep their type string either way | Locked |
-| Categories can define structured fields (`scale` 1–10, `number`, `boolean`, `text`); values stored in `event.metrics` | Locked |
+| Categories can define structured fields (`scale` 1–10, `number`, `duration`, `boolean`, `text`); values stored in `event.metrics`, a duration as decimal hours | Locked |
 | `metrics` field as flexible JSON object | Locked |
 | `meta.version` field for schema evolution | Locked |
 

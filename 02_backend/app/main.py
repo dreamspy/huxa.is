@@ -114,9 +114,10 @@ DEFAULT_CATEGORIES = [
         key="Sleep",
         label="Sleep",
         fields=[
+            CategoryField(key="sleep_score", label="Sleep score (Apple Watch)", type="number"),
+            CategoryField(key="sleep_hours", label="Hours slept (Apple Watch)", type="duration"),
             CategoryField(key="sleep_quality", label="Sleep quality", type="scale"),
             CategoryField(key="rested", label="How rested I feel", type="scale"),
-            CategoryField(key="sleep_hours", label="Hours slept", type="number"),
             CategoryField(key="dreams", label="Dreams", type="text"),
         ],
     ),
@@ -281,7 +282,7 @@ def query_events(q: QueryIn) -> QueryOut:
                     "2. Diary entries — each line is JSON with fields: id, date, answers (object with keys like "
                     "headaches, energy, gut, physical, hip_pain, mental, life, gratitude, activity), saved_at, meta. "
                     "Older diary entries also have a 1-10 sleep rating; sleep is now logged as Sleep events "
-                    "with metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.sleep_hours (number), metrics.dreams (text) and a comment in text. Early Sleep events may also have metrics.sleep_score (a 0-100 number typed in from Apple Watch).\n\n"
+                    "with metrics.sleep_score (0-100, from Apple Watch), metrics.sleep_hours (decimal hours from Apple Watch, 7.5 is 7 h 30 min), metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.dreams (text) and a comment in text.\n\n"
                     "Events are the structured log: one line is one logged entry. Diary entries are free text. "
                     "When asked how many times something was logged, count event entries only; "
                     "do not count diary mentions as logged entries.\n\n"

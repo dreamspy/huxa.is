@@ -2,6 +2,19 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.9 — 2026-11-05
+
+- New `duration` field type: entered as HH:MM with hour buttons 1–12 and :00/:15/:30/:45 buttons, no keyboard, stored as decimal hours (7:30 is `7.5`). The category field editor switches a number field to HH:MM and back.
+- Sleep form starts with the Apple Watch values: sleep score, then hours slept as HH:MM, followed by quality, rested and dreams.
+
+## v0.5.8 — 2026-11-05
+
+- Dark mode browser extensions (Noir and similar) no longer repaint the app: the page declares its own dark theme, so the dictation cancel and stop icons stay visible.
+
+## v0.5.7 — 2026-11-05
+
+- Tetris landing shadow is easier to see: a solid 2px outline in the piece colour with a 30% tinted fill, instead of a faint 1px outline.
+
 ## v0.5.6 — 2026-11-04
 
 - Dictation shows the transcript while you speak: the mic streams audio to an OpenAI Realtime transcription session (Icelandic and English) and the words appear in the field as they are spoken.
