@@ -199,7 +199,7 @@ export default function Tetris(props) {
       boardRow: { flexDirection: "row" },
       cellEmpty: { borderWidth: 1, borderColor: C.input },
       cellFull: { borderWidth: 1, borderColor: "rgba(0,0,0,0.3)" },
-      cellGhost: { borderWidth: 1, opacity: 0.4 },
+      cellGhost: { borderWidth: 1 },
       overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.55)", padding: 16 },
       overlayTitle: { color: "#fff", fontSize: 22, fontWeight: "600", letterSpacing: 2, textTransform: "uppercase", textAlign: "center" },
       overlayText: { color: "#fff", fontSize: 13, marginTop: 12, textAlign: "center", lineHeight: 20 },
@@ -309,7 +309,7 @@ export default function Tetris(props) {
     var base = { width: size, height: size };
     if (!entry) return [s.cellEmpty, base];
     var color = PIECES[entry.key].color;
-    if (entry.ghost) return [s.cellGhost, base, { borderColor: color }];
+    if (entry.ghost) return [s.cellGhost, base, { borderColor: color + "66" }];
     return [s.cellFull, base, { backgroundColor: color }];
   }
 
