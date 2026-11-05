@@ -32,7 +32,7 @@ FastAPI application for the HuXa event engine.
 
 Categories are stored in `categories.json` (default `/var/lib/huxa/categories.json`), separate from the event stream. Each entry is `{ "key", "label", "enabled", "fields" }`; `event.type` stores the key. Disabling hides a category temporarily; deleting removes it. Neither affects events already logged, which store the type string directly.
 
-Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10), `number`, `duration`, `boolean`, or `text`. A `duration` is entered in the app as HH:MM and arrives as decimal hours (7:30 is `7.5`). Field values submitted with an event go into `event.metrics` keyed by field key. Duplicate category keys or duplicate field keys within a category are rejected with 400.
+Each field is `{ "key", "label", "type" }` where type is one of `scale` (1–10), `number`, `duration`, `boolean`, or `text`. A `duration` is entered in the app as HH:MM in 15-minute steps and arrives as decimal hours (7:30 is `7.5`). Field values submitted with an event go into `event.metrics` keyed by field key. Duplicate category keys or duplicate field keys within a category are rejected with 400.
 
 The default list includes a Sleep category with `sleep_quality` and `rested` (scale), `sleep_hours` (duration) and `dreams` (text) fields; the comment is the event `text`. Defaults are only served while `categories.json` does not exist.
 

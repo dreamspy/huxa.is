@@ -197,8 +197,7 @@ function makeStyles(C) {
     fieldTypePillTextActive: { color: C.text },
     composeFieldBlock: { width: "100%", marginBottom: 12 },
     durationRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-    durationInput: { width: 80, marginBottom: 0, textAlign: "center" },
-    durationColon: { color: C.text, fontSize: 20, fontWeight: "600" },
+    durationInput: { width: 80, height: 50, marginBottom: 0, textAlign: "center" },
     metricLine: { color: C.muted, fontSize: 12, marginTop: 2 },
     manageLink: { marginTop: 20 },
     manageLinkText: { color: C.muted, fontSize: 13 },
@@ -1444,8 +1443,14 @@ function AppContent() {
             <Text style={st.labelSmall}>{f.label}</Text>
             <View style={st.durationRow}>
               <TextInput style={[st.input, st.durationInput]} placeholder="HH" placeholderTextColor={C.muted} value={dur[0]} onChangeText={function (t) { setDur(t.replace(/\D/g, ""), dur[1] || ""); }} keyboardType="number-pad" maxLength={2} />
-              <Text style={st.durationColon}>:</Text>
-              <TextInput style={[st.input, st.durationInput]} placeholder="MM" placeholderTextColor={C.muted} value={dur[1] || ""} onChangeText={function (t) { var mi = t.replace(/\D/g, ""); setDur(dur[0], parseInt(mi, 10) > 59 ? dur[1] || "" : mi); }} keyboardType="number-pad" maxLength={2} />
+              {["00", "15", "30", "45"].map(function (mi) {
+                var on = dur[1] === mi;
+                return (
+                  <TouchableOpacity key={mi} style={[st.scaleBtn, on && st.scaleBtnSelected]} onPress={function () { setDur(dur[0], on ? "" : mi); }}>
+                    <Text style={[st.scaleBtnText, on && st.scaleBtnTextSelected]}>{":" + mi}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         );
