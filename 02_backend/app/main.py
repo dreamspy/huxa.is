@@ -118,6 +118,7 @@ DEFAULT_CATEGORIES = [
             CategoryField(key="sleep_hours", label="Hours slept (Apple Watch)", type="duration"),
             CategoryField(key="sleep_quality", label="Sleep quality", type="scale"),
             CategoryField(key="rested", label="How rested I feel", type="scale"),
+            CategoryField(key="hip_pain", label="Hip pain in the night", type="scale"),
             CategoryField(key="dreams", label="Dreams", type="text"),
         ],
     ),
@@ -280,9 +281,10 @@ def query_events(q: QueryIn) -> QueryOut:
                     "You are analyzing a personal health/life log containing two data sources:\n"
                     "1. Events — each line is JSON with fields: id, client_timestamp, received_at, type, text, metrics, meta\n"
                     "2. Diary entries — each line is JSON with fields: id, date, answers (object with keys like "
-                    "headaches, energy, gut, physical, hip_pain, mental, life, gratitude, activity), saved_at, meta. "
-                    "Older diary entries also have a 1-10 sleep rating; sleep is now logged as Sleep events "
-                    "with metrics.sleep_score (0-100, from Apple Watch), metrics.sleep_hours (decimal hours from Apple Watch, 7.5 is 7 h 30 min), metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.dreams (text) and a comment in text.\n\n"
+                    "headaches, energy, gut, physical, mental, life, gratitude, activity), saved_at, meta. "
+                    "Older diary entries also have a 1-10 sleep rating and a 1-10 hip_pain rating; both have been copied into Sleep events "
+                    "(meta.source \"diary\"), so count them from the events only. Sleep is logged as Sleep events "
+                    "with metrics.sleep_score (0-100, from Apple Watch), metrics.sleep_hours (decimal hours from Apple Watch, 7.5 is 7 h 30 min), metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.hip_pain (1-10, hip pain in the night), metrics.dreams (text) and a comment in text.\n\n"
                     "Events are the structured log: one line is one logged entry. Diary entries are free text. "
                     "When asked how many times something was logged, count event entries only; "
                     "do not count diary mentions as logged entries.\n\n"

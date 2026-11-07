@@ -298,7 +298,6 @@ const DIARY_QUESTIONS = [
   { key: "energy", label: "Energy", question: "How is your energy level today?", type: "scale", min: 1, max: 10 },
   { key: "gut", label: "Gut Status", question: "How is your gut feeling today?", type: "text" },
   { key: "physical", label: "Physical Well-Being", question: "How is your general physical well-being today?", type: "text" },
-  { key: "hip_pain", label: "Hip Pain", question: "How is your hip pain today?", type: "scale", min: 1, max: 10 },
   { key: "mental", label: "Mental / Emotional", question: "How is your mental or emotional state today?", type: "text" },
   { key: "life", label: "Life / Events", question: "What is happening in your life or on your mind today?", type: "text" },
   { key: "activity", label: "Physical Activity", question: "What physical activity did you do today, if any?", type: "text" },
@@ -341,6 +340,7 @@ const DEFAULT_CATEGORIES = [
     { key: "sleep_hours", label: "Hours slept (Apple Watch)", type: "duration" },
     { key: "sleep_quality", label: "Sleep quality", type: "scale" },
     { key: "rested", label: "How rested I feel", type: "scale" },
+    { key: "hip_pain", label: "Hip pain in the night", type: "scale" },
     { key: "dreams", label: "Dreams", type: "text" },
   ] },
 ];

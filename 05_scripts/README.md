@@ -51,6 +51,15 @@ The output file can then be appended to the production diary:
 cat diary_import.jsonl >> /var/lib/huxa/diary.jsonl
 ```
 
+### migrate_diary_to_sleep.py
+
+One-off move of the old diary questions that belong to the night: `hip_pain` and the 1–10 `sleep` rating. For each diary date it appends a Sleep event version with `metrics.hip_pain` and `metrics.sleep_quality` (a new event at 08:00Z when that day has none, marked `meta.source: "diary"`), keeps values already on the event, and adds the `hip_pain` field to the Sleep category. Diary lines are left as they are. Safe to run twice.
+
+```bash
+python3 migrate_diary_to_sleep.py --data-dir /var/lib/huxa --dry-run
+sudo -u huxa python3 migrate_diary_to_sleep.py --data-dir /var/lib/huxa
+```
+
 ### read_events.sh
 
 Quick one-liner to pretty-print `events.jsonl` with `jq`.
