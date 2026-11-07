@@ -760,7 +760,7 @@ function AppContent() {
     if (dictation) {
       return (
         <View style={st.dictateWrap}>
-          <TextInput {...props} ref={liveInputRef} editable={false} value={appendText(props.value, liveText)} placeholder="Listening..." style={[props.style, st.liveArea]} />
+          <TextInput {...props} ref={liveInputRef} multiline editable={false} value={appendText(props.value, liveText)} placeholder="Listening..." style={[props.style, st.liveArea]} />
           {renderDictateBar(st.input)}
         </View>
       );
@@ -1521,7 +1521,7 @@ function AppContent() {
           <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Ask HuXa</Text>
-            {renderDictateInput({ style: st.input, placeholder: "e.g. How many events this week?", placeholderTextColor: C.muted, value: queryText, onChangeText: setQueryText, returnKeyType: "send", onSubmitEditing: submitQuery },
+            {renderDictateInput({ style: [st.input, st.textArea], placeholder: "e.g. How many events this week?", placeholderTextColor: C.muted, value: queryText, onChangeText: setQueryText, multiline: true, numberOfLines: 3, blurOnSubmit: true, returnKeyType: "send", onSubmitEditing: submitQuery },
               function (t) { setQueryText(function (prev) { return appendText(prev, t); }); })}
             <View style={st.row}>
               {QUERY_EFFORTS.map(function (e) {
