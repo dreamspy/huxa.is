@@ -5,7 +5,7 @@ For each diary date (latest non-deleted entry), `hip_pain` and `sleep` go into
 `metrics.hip_pain` and `metrics.sleep_quality` of the Sleep event logged that day.
 An existing Sleep event gets a new version appended with the missing keys; a day
 without one gets a new Sleep event at 08:00Z. Values already on the event are kept.
-Diary lines are not changed. Also adds the hip_pain field to the Sleep category.
+Diary lines are not changed. Also adds the hip_pain and stomach fields to the Sleep category.
 Safe to run twice.
 """
 
@@ -16,7 +16,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DIARY_TO_METRIC = {"hip_pain": "hip_pain", "sleep": "sleep_quality"}
-HIP_PAIN_FIELD = {"key": "hip_pain", "label": "Hip pain in the night", "type": "scale"}
+NEW_FIELDS = [
+    {"key": "hip_pain", "label": "Hip pain in the night", "type": "scale"},
+    {"key": "stomach", "label": "Stomach in the night", "type": "scale"},
+]
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -78,9 +81,10 @@ def main():
     categories_file = data / "categories.json"
     categories = json.loads(categories_file.read_text()) if categories_file.exists() else None
     sleep_cat = next((c for c in categories or [] if c["key"] == "Sleep"), None)
-    add_field = sleep_cat is not None and not any(f["key"] == "hip_pain" for f in sleep_cat.get("fields", []))
-    if add_field:
-        print("add hip_pain field to the Sleep category")
+    existing_keys = {f["key"] for f in sleep_cat.get("fields", [])} if sleep_cat else set()
+    add_fields = [f for f in NEW_FIELDS if sleep_cat is not None and f["key"] not in existing_keys]
+    for f in add_fields:
+        print(f"add {f['key']} field to the Sleep category")
 
     if args.dry_run:
         return
@@ -88,10 +92,12 @@ def main():
     with open(data / "events.jsonl", "a") as f:
         for e in to_append:
             f.write(json.dumps(e) + "\n")
-    if add_field:
+    if add_fields:
         fields = sleep_cat.setdefault("fields", [])
-        after = next((i + 1 for i, f in enumerate(fields) if f["key"] == "rested"), len(fields))
-        fields.insert(after, HIP_PAIN_FIELD)
+        after = max((i + 1 for i, f in enumerate(fields) if f["key"] in ("rested", "hip_pain")), default=len(fields))
+        for f in add_fields:
+            fields.insert(after, f)
+            after += 1
         categories_file.write_text(json.dumps(categories, indent=2) + "\n")
 
 

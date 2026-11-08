@@ -119,6 +119,7 @@ DEFAULT_CATEGORIES = [
             CategoryField(key="sleep_quality", label="Sleep quality", type="scale"),
             CategoryField(key="rested", label="How rested I feel", type="scale"),
             CategoryField(key="hip_pain", label="Hip pain in the night", type="scale"),
+            CategoryField(key="stomach", label="Stomach in the night", type="scale"),
             CategoryField(key="dreams", label="Dreams", type="text"),
         ],
     ),
@@ -284,7 +285,7 @@ def query_events(q: QueryIn) -> QueryOut:
                     "headaches, energy, gut, physical, mental, life, gratitude, activity), saved_at, meta. "
                     "Older diary entries also have a 1-10 sleep rating and a 1-10 hip_pain rating; both have been copied into Sleep events "
                     "(meta.source \"diary\"), so count them from the events only. Sleep is logged as Sleep events "
-                    "with metrics.sleep_score (0-100, from Apple Watch), metrics.sleep_hours (decimal hours from Apple Watch, 7.5 is 7 h 30 min), metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.hip_pain (1-10, hip pain in the night), metrics.dreams (text) and a comment in text.\n\n"
+                    "with metrics.sleep_score (0-100, from Apple Watch), metrics.sleep_hours (decimal hours from Apple Watch, 7.5 is 7 h 30 min), metrics.sleep_quality (1-10), metrics.rested (1-10), metrics.hip_pain (1-10, hip pain in the night), metrics.stomach (1-10, stomach in the night), metrics.dreams (text) and a comment in text.\n\n"
                     "Events are the structured log: one line is one logged entry. Diary entries are free text. "
                     "When asked how many times something was logged, count event entries only; "
                     "do not count diary mentions as logged entries.\n\n"

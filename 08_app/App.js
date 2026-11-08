@@ -341,6 +341,7 @@ const DEFAULT_CATEGORIES = [
     { key: "sleep_quality", label: "Sleep quality", type: "scale" },
     { key: "rested", label: "How rested I feel", type: "scale" },
     { key: "hip_pain", label: "Hip pain in the night", type: "scale" },
+    { key: "stomach", label: "Stomach in the night", type: "scale" },
     { key: "dreams", label: "Dreams", type: "text" },
   ] },
 ];
