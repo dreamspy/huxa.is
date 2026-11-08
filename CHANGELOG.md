@@ -2,6 +2,12 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.11 — 2026-11-08
+
+- Hip pain is logged with sleep instead of in the diary: the Sleep category gets "Hip pain in the night" and a new "Stomach in the night" (both 1–10). The diary no longer asks about hip pain.
+- New `05_scripts/migrate_diary_to_sleep.py` copies the old diary hip pain and 1–10 sleep ratings into Sleep events (`meta.source: "diary"`) and adds the two fields to the Sleep category. Diary lines are left as they are.
+- Ask HuXa knows about the new Sleep metrics and counts the moved ratings from the events only.
+
 ## v0.5.10 — 2026-11-05
 
 - Tetris cubes keep full colour after the landing shadow passes over them: the shadow no longer uses opacity, and a board cell is redrawn from scratch when it changes between empty, shadow and cube.
