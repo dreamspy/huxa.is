@@ -96,6 +96,7 @@ Worktrees run in two places: on the Mac (main checkout `~/Programming/huxa.is`) 
 Worktree path is `/opt/huxa-dev/<topic>`, not a sibling of the checkout:
     git -C /opt/huxa worktree add /opt/huxa-dev/<topic> -b <feat|fix>/<topic> main
 Never put `cd` and a git command in the same shell command: Claude Code asks for confirmation on `cd … && git …` in every permission mode. Use `git -C /opt/huxa-dev/<topic> …`, or run `cd` on its own first.
+The user approves commands on the phone, where the prompt shows only the command. Before a command that may ask for approval, write one plain sentence saying what it does and why, and run one step per command, not a chain.
 Bootstrap (run from inside the worktree):
     cp -al /opt/huxa/08_app/node_modules 08_app/node_modules
     ln -s /opt/huxa/02_backend/venv 02_backend/venv
