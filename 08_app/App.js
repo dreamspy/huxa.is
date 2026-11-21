@@ -162,6 +162,7 @@ function makeStyles(C) {
     container: { flex: 1, backgroundColor: C.bg, alignItems: "center", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, paddingHorizontal: GUTTER },
     scroll: { alignSelf: "stretch", marginHorizontal: NEG_GUTTER },
     scrollInset: { paddingHorizontal: 20 },
+    scrollGutter: { paddingHorizontal: GUTTER },
     scrollContent: { alignItems: "center", paddingBottom: 40, width: "100%" },
     title: { fontSize: 28, color: C.text, fontWeight: "300", marginTop: 20, marginBottom: 20, letterSpacing: 2 },
     label: { fontSize: 14, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 15 },
@@ -205,8 +206,8 @@ function makeStyles(C) {
     historyTabActive: { backgroundColor: C.accent },
     historyTabText: { color: C.muted, fontSize: 14, fontWeight: "600" },
     historyTabTextActive: { color: C.text },
-    historyScroll: { flex: 1, width: "100%" },
-    historyScrollContent: { gap: 8, paddingBottom: 20 },
+    historyScroll: { flex: 1, alignSelf: "stretch", marginHorizontal: NEG_GUTTER },
+    historyScrollContent: { gap: 8, paddingBottom: 20, paddingHorizontal: GUTTER },
     eventCard: { backgroundColor: C.surface, borderRadius: 15, padding: 12 },
     eventHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
     badge: { backgroundColor: C.input, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
@@ -1471,7 +1472,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
-          <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollGutter]} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>{editingEventId ? "Edit " : "New "}{selectedType}</Text>
             <View style={st.datePickerRow}>
@@ -1518,7 +1519,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
-          <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollGutter]} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Ask HuXa</Text>
             {renderDictateInput({ style: [st.input, st.textArea], placeholder: "e.g. How many events this week?", placeholderTextColor: C.muted, value: queryText, onChangeText: setQueryText, multiline: true, numberOfLines: 3, blurOnSubmit: true, returnKeyType: "send", onSubmitEditing: submitQuery },
@@ -1708,7 +1709,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
-          <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollGutter]} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Describe Your Day</Text>
             <View style={{ width: "100%", alignItems: "flex-start" }}>
@@ -1764,7 +1765,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
-          <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollGutter]} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen("idle"); }} onLongPress={function () { setFeedbackPrevScreen(screen); setFeedbackType("feature"); setFeedbackText(""); setFeedbackImage(null); setScreen("feedback"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.progressText}>{diaryStep + 1} / {DIARY_STEPS.length}</Text>
             <Text style={st.label}>{q.label}</Text>
@@ -1845,7 +1846,7 @@ function AppContent() {
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
-          <ScrollView contentContainerStyle={st.scrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={st.scroll} contentContainerStyle={[st.scrollContent, st.scrollGutter]} keyboardShouldPersistTaps="handled">
             <TouchableOpacity onPress={function () { setScreen(feedbackPrevScreen || "idle"); }}><Text style={st.title}>HuXa</Text></TouchableOpacity>
             <Text style={st.label}>Feedback</Text>
             <View style={st.row}>
