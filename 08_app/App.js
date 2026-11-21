@@ -92,6 +92,18 @@ function WaveBars(props) {
   }
   return <div style={{ flex: 1, minWidth: 0, height: 28, marginLeft: props.margin, marginRight: props.margin, display: "flex", alignItems: "center", justifyContent: "flex-end", overflow: "hidden" }}>{bars}</div>;
 }
+// Whole image at its own shape: wide ones fill the card, tall ones are capped in height
+function FeedbackImage(props) {
+  var _r = useState(null), ratio = _r[0], setRatio = _r[1];
+  useEffect(function () {
+    var alive = true;
+    Image.getSize(props.uri, function (w, h) { if (alive && w && h) setRatio(w / h); }, function () {});
+    return function () { alive = false; };
+  }, [props.uri]);
+  if (!ratio) return null;
+  var size = ratio >= 1 ? { width: "100%" } : { height: 420, maxWidth: "100%", alignSelf: "flex-start" };
+  return <Image source={{ uri: props.uri }} style={[{ aspectRatio: ratio, borderRadius: props.radius, marginTop: 8 }, size]} resizeMode="contain" />;
+}
 function MicIcon(props) {
   var c = props.color;
   return (
@@ -1931,7 +1943,7 @@ function AppContent() {
                 </View>
                 <Text style={{ color: C.text, fontSize: 14, marginTop: 4 }}>{fb.text}</Text>
                 {fb.attachment && (
-                  <Image source={{ uri: API_BASE + "/attachments/" + fb.attachment }} style={{ width: "100%", height: 150, borderRadius: C.radius, marginTop: 8 }} resizeMode="cover" />
+                  <FeedbackImage uri={API_BASE + "/attachments/" + fb.attachment} radius={C.radius} />
                 )}
               </View>;
             })}
