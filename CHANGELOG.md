@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.15 — 2026-11-21
+
+- The scroll bar sits at the right edge of the screen on every screen (new entry, Ask HuXa, diary, feedback and history), not next to the content.
+
 ## v0.5.14 — 2026-11-21
 
 - Version bump only, no changes to the app.
