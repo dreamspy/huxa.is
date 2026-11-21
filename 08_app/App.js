@@ -25,7 +25,7 @@ import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.15";
+const APP_VERSION = "0.5.16";
 
 // On web the token is also kept in a cookie on the parent domain (huxa.is), so a
 // token entered on huxa.is is picked up by the dev-<topic>.huxa.is previews and
@@ -91,6 +91,18 @@ function WaveBars(props) {
     bars.push(<span key={k} style={{ flex: "none", width: LEVEL_BAR_W, height: LEVEL_MAX_H, margin: "0 " + ((LEVEL_PITCH - LEVEL_BAR_W) / 2) + "px", borderRadius: 1.5, background: props.color, transformOrigin: "center", animation: "huxa-wave " + WAVE_PERIOD_S + "s ease-in-out infinite", animationDelay: (-(WAVE_BARS - 1 - k) * WAVE_STAGGER_S) + "s" }} />);
   }
   return <div style={{ flex: 1, minWidth: 0, height: 28, marginLeft: props.margin, marginRight: props.margin, display: "flex", alignItems: "center", justifyContent: "flex-end", overflow: "hidden" }}>{bars}</div>;
+}
+// Whole image at its own shape: wide ones fill the card, tall ones are capped in height
+function FeedbackImage(props) {
+  var _r = useState(null), ratio = _r[0], setRatio = _r[1];
+  useEffect(function () {
+    var alive = true;
+    Image.getSize(props.uri, function (w, h) { if (alive && w && h) setRatio(w / h); }, function () {});
+    return function () { alive = false; };
+  }, [props.uri]);
+  if (!ratio) return null;
+  var size = ratio >= 1 ? { width: "100%" } : { height: 420, maxWidth: "100%", alignSelf: "flex-start" };
+  return <Image source={{ uri: props.uri }} style={[{ aspectRatio: ratio, borderRadius: props.radius, marginTop: 8 }, size]} resizeMode="contain" />;
 }
 function MicIcon(props) {
   var c = props.color;
@@ -1931,7 +1943,7 @@ function AppContent() {
                 </View>
                 <Text style={{ color: C.text, fontSize: 14, marginTop: 4 }}>{fb.text}</Text>
                 {fb.attachment && (
-                  <Image source={{ uri: API_BASE + "/attachments/" + fb.attachment }} style={{ width: "100%", height: 150, borderRadius: C.radius, marginTop: 8 }} resizeMode="cover" />
+                  <FeedbackImage uri={API_BASE + "/attachments/" + fb.attachment} radius={C.radius} />
                 )}
               </View>;
             })}
