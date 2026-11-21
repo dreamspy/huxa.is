@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.17 — 2026-11-21
+
+- Version bump only, no changes to the app. Shipping now bumps the patch digit without asking, and server sessions explain each command that needs approval before running it.
+
 ## v0.5.16 — 2026-11-21
 
 - Feedback attachments show the whole image instead of a cropped strip: wide images fill the card, tall ones are capped at 420 px high.
