@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.12 — 2026-11-21
+
+- Ask HuXa question wraps over several lines (three lines high, Enter still sends), and the live text wraps while dictating.
+
 ## v0.5.11 — 2026-11-08
 
 - Hip pain is logged with sleep instead of in the diary: the Sleep category gets "Hip pain in the night" and a new "Stomach in the night" (both 1–10). The diary no longer asks about hip pain.
