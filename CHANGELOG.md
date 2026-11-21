@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.13 — 2026-11-21
+
+- Version bump only, no changes to the app.
+
 ## v0.5.12 — 2026-11-21
 
 - Ask HuXa question wraps over several lines (three lines high, Enter still sends), and the live text wraps while dictating.
