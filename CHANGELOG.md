@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.14 — 2026-11-21
+
+- Version bump only, no changes to the app.
+
 ## v0.5.13 — 2026-11-21
 
 - Version bump only, no changes to the app.
