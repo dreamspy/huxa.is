@@ -1,0 +1,22 @@
+# Starts the Claude Code Remote Control server for huxa at boot, inside
+# the tmux session huxa, as huxadev. A systemd user unit: the user
+# manager runs at boot because huxadev lingers. Installed and enabled by
+#   05_scripts/remote_control.sh enable
+# and refreshed by deploy.sh. Rendered by init.sh from workflow.conf; edit there.
+
+[Unit]
+Description=Claude Code Remote Control for huxa
+
+[Service]
+Type=oneshot
+# tmux and the server keep running after the script returns; they stay in this
+# unit, so stopping it stops them.
+RemainAfterExit=yes
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# boot waits for the network first, up to two minutes.
+ExecStart=/opt/huxa/05_scripts/remote_control.sh boot
+ExecStop=/opt/huxa/05_scripts/remote_control.sh stop
+TimeoutStartSec=180
+
+[Install]
+WantedBy=default.target

@@ -87,6 +87,18 @@ Creates convenience symlinks in `~/huxa/` pointing to the server's runtime direc
 bash setup_shortcuts.sh
 ```
 
+### workflow.conf, hooks.sh
+
+The phone workflow scripts below (`preview.sh`, `deploy.sh`, `remote_control.sh`, the `server_*` scripts, `lib.sh`, `defaults.sh`) and their nginx, systemd and sudo files are rendered from the kit in the `claude-skills` repo (`phone-dev-workflow/templates/init.sh`). `workflow.conf` holds huxa's names and paths, `hooks.sh` the huxa-specific build, bootstrap and preview data steps. Change those two, or the kit, never the rendered copies; `update kit` in the integrator session re-renders. `.kit-version` records the kit commit used.
+
+### server_check.sh
+
+Read-only health check of the phone workflow on the server, one ok or MISSING line per dependency, each MISSING with the setup step in `01_docs/phone-workflow.md` that fixes it.
+
+```bash
+ssh huxadev@huxa /opt/huxa/05_scripts/server_check.sh
+```
+
 ### server_dev_setup.sh
 
 One-time preparation of the production server for on-server feature development (Claude Code driving worktrees and previews on the box itself). Installs node 22, tmux and a 2 GB swap file, creates the `huxadev` user that owns `/opt/huxa` and `/opt/huxa-dev/` (worktree parent), installs the shared `08_app/node_modules`, runs an Expo export as a memory smoke test, and generates an ssh key to add as a GitHub deploy key with write access. Idempotent; needs a t3.medium or larger.
@@ -109,8 +121,10 @@ Runs on the server as `huxadev`. Serves a worktree at `/opt/huxa-dev/<topic>` as
 
 ```bash
 cd /opt/huxa-dev/<topic> && /opt/huxa/05_scripts/preview.sh up    # prints the URL
+cd /opt/huxa-dev/<topic> && /opt/huxa/05_scripts/preview.sh bootstrap   # shares node_modules and the venv into a new worktree
 /opt/huxa/05_scripts/preview.sh list
 /opt/huxa/05_scripts/preview.sh down <topic>                       # stops the backend, deletes the preview data
+/opt/huxa/05_scripts/preview.sh remove [--force] <topic>           # down, then removes the worktree and its branch
 ```
 
 ### server_ship_setup.sh
@@ -131,4 +145,4 @@ cd /opt/huxa && 05_scripts/deploy.sh
 
 ### remote_control.sh
 
-Runs on the server as `huxadev`. Keeps the Claude Code Remote Control server alive inside the `huxa` tmux session: `start` (default) creates the tmux session if needed and launches `claude remote-control` in same-dir spawn mode with the `huxa` name prefix, `restart` and `stop` do what they say, `status` reports both. From the Mac: `ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh restart`.
+Runs on the server as `huxadev`. Keeps the Claude Code Remote Control server alive inside the `huxa` tmux session: `start` (default) creates the tmux session if needed and launches `claude remote-control` in same-dir spawn mode with the `huxa` name prefix, `restart` and `stop` do what they say, `status` reports both, `enable` also starts it at every boot through the `huxa-remote-control` systemd user unit. From the Mac: `ssh huxadev@huxa /opt/huxa/05_scripts/remote_control.sh restart`.

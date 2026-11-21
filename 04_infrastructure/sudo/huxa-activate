@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Root half of a deploy: install the nginx sites, reload nginx, restart the
-# backend. huxadev may run it through sudo (see huxadev in this dir).
-# Installed to /usr/local/sbin by 05_scripts/server_ship_setup.sh; changes
-# here take effect after re-running that script.
+# Root half of a deploy: install the nginx sites, reload nginx, restart the backend.
+# huxadev may run it through sudo (see the sudoers file in this dir).
+# Installed to /usr/local/sbin/huxa-activate by 05_scripts/server_ship_setup.sh; changes
+# here take effect after re-running that script. Rendered by init.sh from
+# workflow.conf; values are baked in on purpose, root must not read files the
+# dev user can edit.
 
 set -euo pipefail
 
 install -d -o huxa -g huxa /var/lib/huxa/attachments
 install -m 644 /opt/huxa/04_infrastructure/nginx/huxa.conf /etc/nginx/sites-available/huxa
 install -m 644 /opt/huxa/04_infrastructure/nginx/huxa-preview.conf /etc/nginx/sites-available/huxa-preview
+ln -sf /etc/nginx/sites-available/huxa /etc/nginx/sites-enabled/huxa
+ln -sf /etc/nginx/sites-available/huxa-preview /etc/nginx/sites-enabled/huxa-preview
 nginx -t
 systemctl reload nginx
 systemctl restart huxa

@@ -1,12 +1,18 @@
 {
   "permissions": {
     "defaultMode": "auto",
-    "additionalDirectories": ["/opt/huxa-dev"],
+    "additionalDirectories": [
+      "/opt/huxa-dev",
+      "/home/huxadev/claude-skills"
+    ],
     "allow": [
       "Bash(git *)",
       "Bash(/opt/huxa/05_scripts/preview.sh *)",
-      "Bash(npx expo *)",
+      "Bash(/opt/huxa/05_scripts/server_check.sh*)",
+      "Bash(/home/huxadev/claude-skills/install.sh*)",
+      "Bash(/home/huxadev/claude-skills/phone-dev-workflow/templates/init.sh *)",
       "Bash(npm run *)",
+      "Bash(npx expo *)",
       "Bash(curl *)",
       "WebFetch(domain:huxa.is)",
       "WebFetch(domain:*.huxa.is)"
@@ -19,6 +25,7 @@
       "Bash(git branch -D *)",
       "Bash(05_scripts/deploy.sh*)",
       "Bash(/opt/huxa/05_scripts/deploy.sh*)",
+      "Bash(/opt/huxa/05_scripts/preview.sh remove --force*)",
       "Bash(rm -r*)"
     ],
     "deny": [
@@ -32,7 +39,7 @@
   "autoMode": {
     "environment": [
       "$defaults",
-      "Shared Ubuntu server running production huxa.is. Code in /opt/huxa (main checkout) and /opt/huxa-dev/<topic> (worktrees). Production data in /var/lib/huxa is owned by another user and must never be written. Previews are built with /opt/huxa/05_scripts/preview.sh."
+      "Shared Linux server running production huxa.is. Code in /opt/huxa (main checkout) and /opt/huxa-dev/<topic> (worktrees). Production data in /var/lib/huxa is owned by another user and must never be written. Previews are built with /opt/huxa/05_scripts/preview.sh."
     ],
     "hard_deny": [
       "$defaults",

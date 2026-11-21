@@ -78,6 +78,7 @@
 | `08_app/dist/` | Expo web build (served by Nginx in production) |
 | `fabfile.py` | Fabric deploy commands |
 | `05_scripts/deploy.sh` | Deploy from the server's checkout (build, activate, push); `fab deploy` calls it |
+| `05_scripts/workflow.conf`, `05_scripts/hooks.sh` | Phone workflow config and huxa-specific steps; the workflow scripts and their infra files are rendered from them by the kit (`update kit`) |
 | `05_scripts/preview.sh` | Serve a server worktree at `https://dev-<topic>.huxa.is` |
 | `04_infrastructure/nginx/huxa-preview.conf` | Nginx site for previews (static, regex server name) |
 | `04_infrastructure/systemd/huxa-preview@.service` | Preview backend, systemd user unit for `huxadev` |
@@ -93,26 +94,37 @@ Worktrees run in two places: on the Mac (main checkout `~/Programming/huxa.is`) 
 
 ### On the server
 
+Every Remote Control session starts in `/opt/huxa`, so the checkout alone does not say which kind of session you are. Decide from the request: a request to build, fix, change or bump anything makes you a feature session, and you invoke the `worktree-feature` skill before touching a file, whether or not the user typed `/worktree-feature` (the phone app often sends the request as plain text). Only a request to ship, merge or deploy is done in `/opt/huxa` itself, by the integrator.
+
 Worktree path is `/opt/huxa-dev/<topic>`, not a sibling of the checkout:
     git -C /opt/huxa worktree add /opt/huxa-dev/<topic> -b <feat|fix>/<topic> main
 Never put `cd` and a git command in the same shell command: Claude Code asks for confirmation on `cd … && git …` in every permission mode. Use `git -C /opt/huxa-dev/<topic> …`, or run `cd` on its own first.
-The user approves commands on the phone, where the prompt shows only the command. Before a command that may ask for approval, write one plain sentence saying what it does and why, and run one step per command, not a chain.
-Bootstrap (run from inside the worktree):
-    cp -al /opt/huxa/08_app/node_modules 08_app/node_modules
-    ln -s /opt/huxa/02_backend/venv 02_backend/venv
+The user approves commands on a phone, where the prompt shows only the command. Before a command that may ask for approval, write one plain sentence: what it does and why it is needed now. Run one step per command, not a chain: a chain asks when any part of it is not allowed, and its prompt is too long to read on a phone. Change files with the Edit tool, never with `sed -i`, a script or a heredoc in a shell command: those ask, the Edit tool does not.
+Bootstrap (run from inside the worktree; shares the main checkout's dependencies):
+    /opt/huxa/05_scripts/preview.sh bootstrap
 Dev server: none. Previews are static builds served by nginx. From inside the worktree:
     /opt/huxa/05_scripts/preview.sh up
-prints `https://dev-<topic>.huxa.is`. Run it again after every change the user should see; a build takes about half a minute and nothing hot-reloads. The preview backend runs on a copy of production data taken on the first `up`, with the production token; the web app shares that token with huxa.is through a cookie on the parent domain, so a phone logged in on huxa.is needs no token on a preview. Give the user the URL in the Test it section.
+prints `https://dev-<topic>.huxa.is`. Run it again after every change the user should see; nothing hot-reloads. The preview backend runs on a copy of the production data taken on the first `up`, with the production secrets, so anything changed there stays out of production. Give the user the URL in the Test it section. The server has no browser: check the preview with curl against the URL, the user looks at it on the phone.
 Tests, safe beside other sessions: none, there is no test suite. Check the preview on the phone or with curl against the URL.
-Tests, full (integrator only): none.
-Do not: write under `/var/lib/huxa`; edit or commit in `/opt/huxa` except in the Ship step; install into `/opt/huxa/08_app/node_modules` or the shared venv (give the worktree its own venv if a backend dependency changes); run `deploy.sh` from a worktree.
+Tests, full (integrator only): none
+Do not: write under `/var/lib/huxa`; edit or commit in `/opt/huxa` except in the Ship and Update kit steps; install into the main checkout's shared dependency dirs (give the worktree its own when a dependency changes); run `deploy.sh` from a worktree.
 
 Ship. Sessions on the server are spawned from the Claude app by `claude remote-control` running in `/opt/huxa`: the pre-created session there is the integrator, every other session is a feature session that hands over as the skill describes. The integrator is told `ship <topic>`, with or without the handover block; without it, the branch is the one checked out in `/opt/huxa-dev/<topic>` (`git worktree list`) and the merge subject is written from its commits. A feature session told to ship may do these steps itself when it is the only session. Steps:
-1. Bump the patch digit without asking; `ship <topic> minor` or `ship <topic> major` bumps that digit instead. On the branch, set `APP_VERSION` in `08_app/App.js`, add the `CHANGELOG.md` section, commit as "Bump to vX.Y.Z".
-2. In `/opt/huxa`: `git merge --no-ff <branch> -m "Merge <branch>: <what it does> (vX.Y.Z)"`.
-3. `05_scripts/deploy.sh`. It builds the web app, commits dist, installs requirements, restarts the backend through sudo and pushes main.
-4. `/opt/huxa/05_scripts/preview.sh down <topic>`, then `git worktree remove /opt/huxa-dev/<topic>` and `git branch -d <branch>`.
+1. Bump the patch digit without asking. `ship <topic> minor` or `ship <topic> major` bumps that digit instead. On the branch, set `APP_VERSION` in `08_app/App.js` and add the `CHANGELOG.md` section, both with the Edit tool. Then commit with `git -C /opt/huxa-dev/<topic> commit -am "Bump to vX.Y.Z"` as a command of its own.
+2. In `/opt/huxa`: `git merge --no-ff <branch> -m "Merge <branch>: <what it does>"`.
+3. `05_scripts/deploy.sh`. It installs dependencies, builds the site, runs the root half through sudo and pushes main.
+4. `/opt/huxa/05_scripts/preview.sh remove <topic>`. It stops and deletes the preview, removes the bootstrap links, removes the worktree and deletes the merged branch.
 5. Tell the user to reload huxa.is and what to check there.
+
+Drop. `drop <topic>` throws a feature away: `/opt/huxa/05_scripts/preview.sh remove --force <topic>` deletes the preview, the worktree and the branch, merged or not. Claude Code asks the user to confirm that command; main is untouched.
+
+Skills and kit. The skills on this server (`worktree-feature`, `phone-dev-workflow`) and the kit that generated this project's workflow scripts live in `/home/huxadev/claude-skills`, a clone of `dreamspy/claude-skills`; `~/.claude/skills/` links into it. A change to a skill or to the kit is made there, never in this project's copies under `05_scripts/` or `04_infrastructure/`, which the next render overwrites. Edit, commit and push with `git -C /home/huxadev/claude-skills`. If the push is refused because another machine pushed first, `git -C /home/huxadev/claude-skills pull --rebase`, resolve, push again; never force-push. A skill change takes effect here at once; other machines get it with `update kit`.
+
+Update kit. The integrator is told `update kit` to bring this server and project up to the skills repo. Steps:
+1. `git -C /home/huxadev/claude-skills pull --ff-only`, then `/home/huxadev/claude-skills/install.sh`. If the pull refuses, the clone has commits of its own: push them first as above.
+2. In `/opt/huxa`, on a clean main: `/home/huxadev/claude-skills/phone-dev-workflow/templates/init.sh /opt/huxa`. Show the user what changed (`git -C /opt/huxa diff --stat`, then the lines that matter) and anything the render printed under "Needs a hand". Commit as "Update the phone workflow kit".
+3. `05_scripts/deploy.sh`. It installs changed nginx sites and the preview unit.
+4. When the render changed anything under `04_infrastructure/sudo/`, tell the user to repeat setup step 5 as the admin: `ssh huxa 'sudo bash /opt/huxa/05_scripts/server_ship_setup.sh'`. The dev user cannot install the root half of a deploy.
 
 ### On the Mac
 

@@ -1,17 +1,20 @@
 # Preview backend for the worktree at /opt/huxa-dev/<topic>. A systemd user
 # unit for huxadev, installed to ~/.config/systemd/user/ by
-# 05_scripts/server_preview_setup.sh and started by 05_scripts/preview.sh:
+# 05_scripts/server_preview_setup.sh, refreshed by deploy.sh and started by
+# 05_scripts/preview.sh:
 #   systemctl --user start huxa-preview@<topic>
-# /etc/huxa/preview.env carries HUXA_AUTH_TOKEN and OPENAI_API_KEY, the
-# per-preview env file the data paths under /var/lib/huxa-preview/<topic>/.
+# /etc/huxa/preview.env carries the secrets copied from production, the per-preview
+# env file the data paths under /var/lib/huxa-preview/<topic>/.
+# Rendered by init.sh from workflow.conf; edit there.
 
 [Unit]
-Description=HuXa preview backend (%i)
+Description=huxa preview backend (%i)
 
 [Service]
 EnvironmentFile=/etc/huxa/preview.env
 EnvironmentFile=/var/lib/huxa-preview/%i/env
 WorkingDirectory=/opt/huxa-dev/%i/02_backend
+# A crashed backend leaves its socket behind and the next start cannot bind.
 ExecStartPre=/bin/rm -f /var/lib/huxa-preview/%i/backend.sock
 ExecStart=/opt/huxa-dev/%i/02_backend/venv/bin/uvicorn app.main:app --uds /var/lib/huxa-preview/%i/backend.sock
 Restart=on-failure
