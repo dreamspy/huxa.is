@@ -55,7 +55,7 @@
 - Do not add complex auth flows — phase 1 is bearer token.
 - Test changes against the actual JSONL append workflow.
 - **Keep ALL docs in sync.** When implementing a feature, fixing a bug, or making any meaningful change, update all relevant files in the same commit: READMEs (`README.md`, `02_backend/README.md`, `05_scripts/README.md`), docs in `01_docs/`, `ROADMAP.md` (tick off completed items), and `CLAUDE.md` if architecture or rules change. If you add, remove, or change a script, endpoint, feature, or config option, every affected doc must reflect it.
-- **Bump version before each deploy.** Version lives in `08_app/App.js` (`APP_VERSION`). Before deploying (not every commit), ask the user which digit to increment: major (1st), minor (2nd), or patch (3rd). Multiple commits can share a version.
+- **Bump version before each deploy.** Version lives in `08_app/App.js` (`APP_VERSION`). Before deploying (not every commit), increment the patch (3rd) digit unless the user asks for minor (2nd) or major (1st). Multiple commits can share a version.
 - **Include version in commit messages.** When the version is bumped, include it in the commit subject, e.g. `"Add feature X (v0.3.0)"`. If no version bump, don't add it.
 - **Expo is the sole frontend.** All UI/frontend work goes in `08_app/` (Expo/React Native). Serves iOS, Android, and web from a single codebase.
 - **Update CHANGELOG.md before each deploy.** Create a new section header with the version and date, and add bullets describing all changes since the last deploy.
@@ -96,6 +96,7 @@ Worktrees run in two places: on the Mac (main checkout `~/Programming/huxa.is`) 
 Worktree path is `/opt/huxa-dev/<topic>`, not a sibling of the checkout:
     git -C /opt/huxa worktree add /opt/huxa-dev/<topic> -b <feat|fix>/<topic> main
 Never put `cd` and a git command in the same shell command: Claude Code asks for confirmation on `cd … && git …` in every permission mode. Use `git -C /opt/huxa-dev/<topic> …`, or run `cd` on its own first.
+The user approves commands on the phone, where the prompt shows only the command. Before a command that may ask for approval, write one plain sentence saying what it does and why, and run one step per command, not a chain.
 Bootstrap (run from inside the worktree):
     cp -al /opt/huxa/08_app/node_modules 08_app/node_modules
     ln -s /opt/huxa/02_backend/venv 02_backend/venv
@@ -107,7 +108,7 @@ Tests, full (integrator only): none.
 Do not: write under `/var/lib/huxa`; edit or commit in `/opt/huxa` except in the Ship step; install into `/opt/huxa/08_app/node_modules` or the shared venv (give the worktree its own venv if a backend dependency changes); run `deploy.sh` from a worktree.
 
 Ship. Sessions on the server are spawned from the Claude app by `claude remote-control` running in `/opt/huxa`: the pre-created session there is the integrator, every other session is a feature session that hands over as the skill describes. The integrator is told `ship <topic>`, with or without the handover block; without it, the branch is the one checked out in `/opt/huxa-dev/<topic>` (`git worktree list`) and the merge subject is written from its commits. A feature session told to ship may do these steps itself when it is the only session. Steps:
-1. Ask which version digit to bump. On the branch, set `APP_VERSION` in `08_app/App.js`, add the `CHANGELOG.md` section, commit as "Bump to vX.Y.Z".
+1. Bump the patch digit without asking; `ship <topic> minor` or `ship <topic> major` bumps that digit instead. On the branch, set `APP_VERSION` in `08_app/App.js`, add the `CHANGELOG.md` section, commit as "Bump to vX.Y.Z".
 2. In `/opt/huxa`: `git merge --no-ff <branch> -m "Merge <branch>: <what it does> (vX.Y.Z)"`.
 3. `05_scripts/deploy.sh`. It builds the web app, commits dist, installs requirements, restarts the backend through sudo and pushes main.
 4. `/opt/huxa/05_scripts/preview.sh down <topic>`, then `git worktree remove /opt/huxa-dev/<topic>` and `git branch -d <branch>`.
