@@ -83,7 +83,9 @@ for `TRANSCRIBE_SESSION_SECRET_S` (120 s) to open a session; the session itself 
 The browser then connects straight to `wss://api.openai.com/v1/realtime` with the secret as the
 `openai-insecure-api-key.<secret>` WebSocket subprotocol, streams mono 16-bit PCM at 24 kHz in
 `input_audio_buffer.append` events and receives
-`conversation.item.input_audio_transcription.delta` events while the user speaks. Stop sends
+`conversation.item.input_audio_transcription.delta` events while the user speaks. The app starts
+recording as soon as the mic is live, while the secret and the socket are still on their way, and
+sends that audio in one append when the socket opens, so the first words are not lost. Stop sends
 `input_audio_buffer.commit`; the `...completed` event carries the final text. The audio never
 passes through this server. Measured on the server: deltas arrive word by word about a second
 behind the speech, the final text about half a second after the commit.

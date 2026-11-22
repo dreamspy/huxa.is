@@ -524,12 +524,18 @@ function AppContent() {
   // opened with a short-lived secret from POST /transcribe/session, and the transcript comes back
   // word by word while speaking. Stop commits the audio; the final text replaces the live draft
   // and goes to onText. Cancel drops the take.
+  // Capture starts as soon as the mic is live, not when the socket opens: the session secret and
+  // the socket take a second or more, and the audio from that time is held and sent on open.
   function startDictation(onText) {
     if (recorderRef.current) return;
     // Created inside the tap handler: Safari only lets audio start from a user gesture
     var AC = window.AudioContext || window.webkitAudioContext;
-    var rec = { audioCtx: new AC(), ws: null, stream: null, segments: [], cancelled: false, recording: false, stopping: false, done: false, sent: false, onText: onText };
+    var rec = { audioCtx: new AC(), ws: null, stream: null, segments: [], cancelled: false, recording: false, open: false, stopping: false, done: false, sent: false, onText: onText };
     recorderRef.current = rec;
+    rec.audioCtx.resume();
+    rec.workletP = rec.audioCtx.audioWorklet
+      ? rec.audioCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([PCM_WORKLET], { type: "application/javascript" }))).then(function () { return true; }, function () { return false; })
+      : Promise.resolve(false);
     var waveStart = performance.now();
     setDictation("opening");
     setLiveText("");
@@ -538,27 +544,29 @@ function AppContent() {
       if (!res.ok) return res.json().catch(function () { return {}; }).then(function (b) { throw new Error(b.detail || "HTTP " + res.status); });
       return res.json();
     });
-    var micP = navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      if (rec.done) stream.getTracks().forEach(function (t) { t.stop(); }); // cancelled while the mic was opening
+    var captureP = navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      if (rec.done) { stream.getTracks().forEach(function (t) { t.stop(); }); return; } // cancelled while the mic was opening
       rec.stream = stream;
-      return stream;
+      rec.recording = true;
+      startCapture(rec, stream, waveStart);
+      setDictation("recording");
+      armRecordingLimit(rec);
     });
-    Promise.all([sessionP, micP]).then(function (r) {
+    var socketP = sessionP.then(function (session) {
       if (rec.done) return;
-      var session = r[0], stream = r[1];
       // Browsers cannot set headers on a WebSocket; the secret travels as a subprotocol
       var ws = new WebSocket(REALTIME_URL, ["realtime", "openai-insecure-api-key." + session.client_secret]);
       rec.ws = ws;
       ws.onopen = function () {
         if (rec.done) return;
-        rec.recording = true;
-        startCapture(rec, stream, waveStart);
-        setDictation("recording");
-        armRecordingLimit(rec);
+        rec.open = true;
+        if (rec.flush) rec.flush();
+        if (rec.stopping) commitDictation(rec);
       };
       ws.onmessage = function (e) { handleRealtimeEvent(rec, JSON.parse(e.data)); };
-      ws.onclose = function () { finishDictation(rec, rec.stopping ? null : rec.recording ? "Connection lost" : "Transcription unavailable"); };
-    }).catch(function (err) {
+      ws.onclose = function () { finishDictation(rec, !rec.open ? "Transcription unavailable" : rec.stopping ? null : "Connection lost"); };
+    });
+    Promise.all([captureP, socketP]).catch(function (err) {
       var msg;
       if (err && err.name === "NotAllowedError") msg = "Microphone access denied";
       else if (err && (err.name === "NotFoundError" || err.name === "NotReadableError")) msg = "Microphone unavailable";
@@ -569,7 +577,8 @@ function AppContent() {
   }
 
   // Level graph plus PCM capture. The worklet hands over Float32 blocks at the device rate;
-  // they are resampled to 24 kHz, converted to Int16 and sent in 200 ms batches.
+  // they are resampled to 24 kHz, converted to Int16 and sent in 200 ms batches, or held until
+  // the socket opens.
   function startCapture(rec, stream, waveStart) {
     var audioCtx = rec.audioCtx;
     var source = audioCtx.createMediaStreamSource(stream);
@@ -601,12 +610,11 @@ function AppContent() {
     var carry = new Float32Array(0), frac = 0; // input samples not yet consumed, and the read position into them
     var queue = [], queued = 0;
     var flush = function () {
-      if (queued && rec.ws && rec.ws.readyState === 1) {
-        var all = new Int16Array(queued), off = 0;
-        queue.forEach(function (c) { all.set(c, off); off += c.length; });
-        rec.ws.send(JSON.stringify({ type: "input_audio_buffer.append", audio: pcmBase64(all) }));
-        rec.sent = true;
-      }
+      if (!queued || !rec.open) return;
+      var all = new Int16Array(queued), off = 0;
+      queue.forEach(function (c) { all.set(c, off); off += c.length; });
+      rec.ws.send(JSON.stringify({ type: "input_audio_buffer.append", audio: pcmBase64(all) }));
+      rec.sent = true;
       queue = []; queued = 0;
     };
     rec.flush = flush;
@@ -631,15 +639,14 @@ function AppContent() {
       node.onaudioprocess = function (e) { pushPcm(e.inputBuffer.getChannelData(0)); };
       attach(node);
     };
-    if (audioCtx.audioWorklet) {
-      var url = URL.createObjectURL(new Blob([PCM_WORKLET], { type: "application/javascript" }));
-      audioCtx.audioWorklet.addModule(url).then(function () {
-        if (rec.done) return;
-        var node = new AudioWorkletNode(audioCtx, "huxa-pcm");
-        node.port.onmessage = function (e) { pushPcm(e.data); };
-        attach(node);
-      }).catch(attachScriptProcessor);
-    } else attachScriptProcessor();
+    rec.workletP.then(function (ok) {
+      if (rec.done || rec.stopping) return;
+      var node;
+      try { node = ok && new AudioWorkletNode(audioCtx, "huxa-pcm"); } catch (e) { node = null; }
+      if (!node) { attachScriptProcessor(); return; }
+      node.port.onmessage = function (e) { pushPcm(e.data); };
+      attach(node);
+    });
     audioCtx.resume();
   }
 
@@ -694,7 +701,7 @@ function AppContent() {
   function stopDictation(cancel) {
     var rec = recorderRef.current;
     if (!rec || rec.stopping) return;
-    // Nothing recorded before the session is open, so stop and cancel both just close the bar
+    // Nothing recorded before the mic is live, so stop and cancel both just close the bar
     if (cancel || !rec.recording) { rec.cancelled = true; finishDictation(rec, null); return; }
     rec.stopping = true;
     clearTimeout(rec.limit);
@@ -706,6 +713,13 @@ function AppContent() {
     rec.audioCtx.close();
     rec.closed = true;
     setDictation("transcribing");
+    // Before the socket is open, onopen sends the held audio and commits
+    if (rec.open) commitDictation(rec);
+    else rec.finalTimer = setTimeout(function () { finishDictation(rec, "Transcription unavailable"); }, FINAL_WAIT_MS);
+  }
+
+  function commitDictation(rec) {
+    clearTimeout(rec.finalTimer);
     if (!rec.sent) { finishDictation(rec, null); return; }
     rec.ws.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
     rec.finalTimer = setTimeout(function () { finishDictation(rec, null); }, FINAL_WAIT_MS);
