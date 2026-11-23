@@ -1855,6 +1855,12 @@ function AppContent() {
       });
     };
 
+    var loadFeedbackList = function () {
+      return fetch(API_BASE + "/reports", { headers: authHeaders() })
+        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+        .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); });
+    };
+
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
@@ -1902,31 +1908,26 @@ function AppContent() {
                   if (!res.ok) throw new Error("HTTP " + res.status);
                   return res.json();
                 }).then(function (report) {
-                  if (feedbackImage) {
-                    return uploadAttachment(report.id, feedbackImage).then(function (res) {
-                      if (!res.ok) showToastMsg("Feedback sent but image upload failed", "error");
-                      else showToastMsg("Feedback sent", "success");
-                    });
-                  }
-                  showToastMsg("Feedback sent", "success");
-                }).then(function () {
+                  if (!feedbackImage) return true;
+                  return uploadAttachment(report.id, feedbackImage).then(function (res) { return res.ok; }, function () { return false; });
+                }).then(function (imageOk) {
+                  if (imageOk) showToastMsg("Feedback sent", "success");
+                  else showToastMsg("Feedback sent but image upload failed", "error");
                   setFeedbackText("");
                   setFeedbackImage(null);
                   setScreen("feedback");
+                  return loadFeedbackList().catch(function () {});
                 }).catch(function (err) {
+                  setScreen("feedback");
                   if (err instanceof TypeError) { addToQueueFn("feedback", { type: feedbackType, text: feedbackText.trim() }); showToastMsg("Feedback saved offline (image not queued)", "success"); setFeedbackText(""); setFeedbackImage(null); return; }
                   showToastMsg(err.message || "Error", "error");
-                  setScreen("feedback");
                 });
               }}><Text style={st.btnSubmitText}>Send</Text></TouchableOpacity>
             </View>
             <TouchableOpacity style={{ marginTop: 20 }} onPress={function () {
               if (feedbackShowList) { setFeedbackShowList(false); return; }
               if (needsToken()) { showToastMsg("Set your token in Settings first", "error"); return; }
-              fetch(API_BASE + "/reports", { headers: authHeaders() })
-                .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
-                .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); })
-                .catch(function (err) { showToastMsg(err.message || "Load failed", "error"); });
+              loadFeedbackList().catch(function (err) { showToastMsg(err.message || "Load failed", "error"); });
             }}><Text style={{ color: C.muted, fontSize: 13 }}>{feedbackShowList ? "Hide History" : "View All Feedback"}</Text></TouchableOpacity>
             {feedbackShowList && feedbackList.map(function (fb) {
               return <View key={fb.id} style={[st.reviewItem, { marginTop: 8 }]}>
