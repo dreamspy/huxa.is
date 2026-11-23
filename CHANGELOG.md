@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.20 — 2026-11-23
+
+- Multiline text fields (compose, diary answers, Ask HuXa, feedback) grow with their text on the web, up to 240 px, then scroll.
+
 ## v0.5.19 — 2026-11-23
 
 - Feedback history shows as soon as the feedback screen opens, instead of after tapping View All Feedback.
