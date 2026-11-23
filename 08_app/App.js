@@ -999,6 +999,16 @@ function AppContent() {
   var queueRef = useRef(queue);
   queueRef.current = queue;
 
+  function loadFeedbackList() {
+    return fetch(API_BASE + "/reports", { headers: authHeaders() })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); });
+  }
+
+  useEffect(function () {
+    if (screen === "feedback" && !needsToken()) loadFeedbackList().catch(function () {});
+  }, [screen]);
+
   useEffect(function () {
     var unsubNetInfo = NetInfo.addEventListener(function (state) {
       if (state.isConnected && queueRef.current.length > 0) {
@@ -1855,12 +1865,6 @@ function AppContent() {
       });
     };
 
-    var loadFeedbackList = function () {
-      return fetch(API_BASE + "/reports", { headers: authHeaders() })
-        .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
-        .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); });
-    };
-
     return (
       <SafeAreaView style={st.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
@@ -1916,7 +1920,6 @@ function AppContent() {
                   setFeedbackText("");
                   setFeedbackImage(null);
                   setScreen("feedback");
-                  return loadFeedbackList().catch(function () {});
                 }).catch(function (err) {
                   setScreen("feedback");
                   if (err instanceof TypeError) { addToQueueFn("feedback", { type: feedbackType, text: feedbackText.trim() }); showToastMsg("Feedback saved offline (image not queued)", "success"); setFeedbackText(""); setFeedbackImage(null); return; }
