@@ -25,7 +25,7 @@ import Markdown from "./Markdown";
 var DateTimePicker = Platform.OS === "web" ? null : require("@react-native-community/datetimepicker").default;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || "https://huxa.is";
-const APP_VERSION = "0.5.18";
+const APP_VERSION = "0.5.19";
 
 // On web the token is also kept in a cookie on the parent domain (huxa.is), so a
 // token entered on huxa.is is picked up by the dev-<topic>.huxa.is previews and
@@ -999,6 +999,16 @@ function AppContent() {
   var queueRef = useRef(queue);
   queueRef.current = queue;
 
+  function loadFeedbackList() {
+    return fetch(API_BASE + "/reports", { headers: authHeaders() })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); });
+  }
+
+  useEffect(function () {
+    if (screen === "feedback" && !needsToken()) loadFeedbackList().catch(function () {});
+  }, [screen]);
+
   useEffect(function () {
     var unsubNetInfo = NetInfo.addEventListener(function (state) {
       if (state.isConnected && queueRef.current.length > 0) {
@@ -1902,31 +1912,25 @@ function AppContent() {
                   if (!res.ok) throw new Error("HTTP " + res.status);
                   return res.json();
                 }).then(function (report) {
-                  if (feedbackImage) {
-                    return uploadAttachment(report.id, feedbackImage).then(function (res) {
-                      if (!res.ok) showToastMsg("Feedback sent but image upload failed", "error");
-                      else showToastMsg("Feedback sent", "success");
-                    });
-                  }
-                  showToastMsg("Feedback sent", "success");
-                }).then(function () {
+                  if (!feedbackImage) return true;
+                  return uploadAttachment(report.id, feedbackImage).then(function (res) { return res.ok; }, function () { return false; });
+                }).then(function (imageOk) {
+                  if (imageOk) showToastMsg("Feedback sent", "success");
+                  else showToastMsg("Feedback sent but image upload failed", "error");
                   setFeedbackText("");
                   setFeedbackImage(null);
                   setScreen("feedback");
                 }).catch(function (err) {
+                  setScreen("feedback");
                   if (err instanceof TypeError) { addToQueueFn("feedback", { type: feedbackType, text: feedbackText.trim() }); showToastMsg("Feedback saved offline (image not queued)", "success"); setFeedbackText(""); setFeedbackImage(null); return; }
                   showToastMsg(err.message || "Error", "error");
-                  setScreen("feedback");
                 });
               }}><Text style={st.btnSubmitText}>Send</Text></TouchableOpacity>
             </View>
             <TouchableOpacity style={{ marginTop: 20 }} onPress={function () {
               if (feedbackShowList) { setFeedbackShowList(false); return; }
               if (needsToken()) { showToastMsg("Set your token in Settings first", "error"); return; }
-              fetch(API_BASE + "/reports", { headers: authHeaders() })
-                .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
-                .then(function (data) { setFeedbackList(data); setFeedbackShowList(true); })
-                .catch(function (err) { showToastMsg(err.message || "Load failed", "error"); });
+              loadFeedbackList().catch(function (err) { showToastMsg(err.message || "Load failed", "error"); });
             }}><Text style={{ color: C.muted, fontSize: 13 }}>{feedbackShowList ? "Hide History" : "View All Feedback"}</Text></TouchableOpacity>
             {feedbackShowList && feedbackList.map(function (fb) {
               return <View key={fb.id} style={[st.reviewItem, { marginTop: 8 }]}>

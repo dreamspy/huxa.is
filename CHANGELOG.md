@@ -2,6 +2,11 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.19 — 2026-11-23
+
+- Feedback history shows as soon as the feedback screen opens, instead of after tapping View All Feedback.
+- Sending feedback no longer hangs on Submitting: the history refreshes with the new entry, and a failed image upload says so instead of stalling.
+
 ## v0.5.18 — 2026-11-23
 
 - Version bump only, no changes to the app.
