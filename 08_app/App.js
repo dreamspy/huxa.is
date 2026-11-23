@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -304,6 +304,24 @@ function WebDateInput(props) {
     },
     style: { backgroundColor: colors.surface, color: colors.text, border: "1px solid " + colors.muted, borderRadius: 8, padding: 8, fontSize: 16 },
   });
+}
+
+// A multiline TextInput that grows with its text up to GROW_MAX_H, then scrolls. Native does
+// this on its own; a web textarea keeps its height, so it is set from scrollHeight. The height
+// is only reset when text was removed: resetting on every key makes the page jump.
+const GROW_MAX_H = 240;
+function GrowInput(props) {
+  var ref = useRef(null);
+  var lastLen = useRef(0);
+  useLayoutEffect(function () {
+    var el = ref.current;
+    if (Platform.OS !== "web" || !el || !el.style) return;
+    var len = (props.value || "").length;
+    if (len < lastLen.current) el.style.height = "auto";
+    lastLen.current = len;
+    if (el.scrollHeight > el.clientHeight) el.style.height = Math.min(el.scrollHeight, GROW_MAX_H) + "px";
+  }, [props.value]);
+  return <TextInput {...props} ref={ref} style={[props.style, { maxHeight: GROW_MAX_H }]} />;
 }
 
 const DIARY_QUESTIONS = [
@@ -769,7 +787,7 @@ function AppContent() {
   // about DICTATE_LINES lines and shows the live transcript appended to its text, read-only,
   // with the dictate bar below it. The transcript is appended for real via onText at the end.
   function renderDictateInput(props, onText) {
-    if (!DICTATION_SUPPORTED) return <TextInput {...props} />;
+    if (!DICTATION_SUPPORTED) return <GrowInput {...props} />;
     if (dictation) {
       return (
         <View style={st.dictateWrap}>
@@ -780,7 +798,7 @@ function AppContent() {
     }
     return (
       <View style={st.dictateWrap}>
-        <TextInput {...props} style={[props.style, { paddingRight: 48 }]} />
+        <GrowInput {...props} style={[props.style, { paddingRight: 48 }]} />
         <TouchableOpacity style={st.dictateMic} onPress={function () { startDictation(onText); }}><MicIcon color={C.muted} /></TouchableOpacity>
       </View>
     );
@@ -1876,7 +1894,7 @@ function AppContent() {
               <TouchableOpacity style={[st.btnSubmit, feedbackType === "bug" ? { backgroundColor: C.error } : { backgroundColor: C.surface }]} onPress={function () { setFeedbackType("bug"); }}><Text style={st.btnSubmitText}>Bug</Text></TouchableOpacity>
             </View>
             <View style={{ height: 12 }} />
-            <TextInput
+            <GrowInput
               style={[st.input, st.textArea, { minHeight: 100 }]}
               placeholder={feedbackType === "bug" ? "Describe the bug..." : "Describe the feature..."}
               placeholderTextColor={C.muted}
