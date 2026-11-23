@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.18 — 2026-11-23
+
+- Version bump only, no changes to the app.
+
 ## v0.5.17 — 2026-11-21
 
 - Version bump only, no changes to the app. Shipping now bumps the patch digit without asking, and server sessions explain each command that needs approval before running it.
