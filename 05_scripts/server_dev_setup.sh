@@ -88,6 +88,7 @@ DOCS_DIR=${DOCS_DIR:-docs}
 FRONTEND_DIR=${FRONTEND_DIR:-.}
 DIST_DIR=${DIST_DIR:-dist}
 COMMIT_DIST=${COMMIT_DIST:-}
+FRONTEND=${FRONTEND:-static}
 BACKEND=${BACKEND:-none}
 BACKEND_EXEC=${BACKEND_EXEC:-}
 BACKEND_WORKDIR=${BACKEND_WORKDIR:-}
@@ -247,7 +248,9 @@ echo "== build smoke test (elapsed time and peak memory)"
 smoke=$(mktemp -d /tmp/"$PROJECT"-smoke.XXXXXX)
 chown "$DEV_USER" "$smoke"
 sudo -Hu "$DEV_USER" /usr/bin/time -f 'elapsed %E, peak %M KB' bash -c ". '$REPO/$SCRIPTS_DIR/lib.sh' && cd '$REPO' && build_frontend 'https://$DOMAIN' '$smoke/www'"
-[ -e "$smoke/www/index.html" ] && echo "build produced index.html" || echo "WARNING: no index.html in the build output" >&2
+if [ "$FRONTEND" != server ]; then
+    [ -e "$smoke/www/index.html" ] && echo "build produced index.html" || echo "WARNING: no index.html in the build output" >&2
+fi
 rm -rf "${smoke:?}"
 
 if [ -n "$PROD_DATA" ]; then

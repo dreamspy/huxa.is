@@ -5,9 +5,19 @@
 # unit, run the root half
 # (<PROJECT>-activate: nginx sites, reload, service restart) through sudo, push,
 # check health. Run from a clean <REPO> on the base branch; refuses a worktree.
+#   deploy.sh          deploy what the checkout holds (a ship merged it here)
+#   deploy.sh --pull   fast-forward the base branch from origin first: a deploy
+#                      of what was pushed from elsewhere, the Mac for one
 
 set -euo pipefail
 . "$(dirname "$(readlink -f "$0")")/lib.sh"
+
+pull=
+case "${1:-}" in
+    --pull) pull=1 ;;
+    "") ;;
+    *) die "usage: deploy.sh [--pull]" ;;
+esac
 
 need_dev_user
 cd "$REPO"
@@ -16,6 +26,11 @@ cd "$REPO"
 if [ -n "$(git status --porcelain)" ]; then
     git status --short >&2
     die "working tree not clean"
+fi
+
+if [ -n "$pull" ]; then
+    echo "== pull"
+    git pull --ff-only origin "$BASE_BRANCH"
 fi
 
 # Asked about a file inside: a "dist/" rule does not match the bare name while
@@ -56,8 +71,13 @@ git push origin "$BASE_BRANCH"
 if [ -n "$HEALTH_PATH" ]; then
     sleep 1
     echo "== health"
-    curl -sf "https://$DOMAIN$HEALTH_PATH"
-    echo
+    if server_rendered; then
+        # The health path is a page here; its status is enough, not its HTML.
+        curl -sf -o /dev/null -w "https://$DOMAIN$HEALTH_PATH -> %{http_code}\n" "https://$DOMAIN$HEALTH_PATH"
+    else
+        curl -sf "https://$DOMAIN$HEALTH_PATH"
+        echo
+    fi
 else
     echo "== site"
     curl -s -o /dev/null -w "https://$DOMAIN -> %{http_code}\n" "https://$DOMAIN/"

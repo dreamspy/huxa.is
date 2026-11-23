@@ -137,10 +137,11 @@ ssh huxa 'sudo bash -s' < 05_scripts/server_ship_setup.sh
 
 ### deploy.sh
 
-Runs on the server as `huxadev` from a clean `/opt/huxa` on main. Builds the web app with a cleared Metro cache, commits `08_app/dist` if it changed, installs backend requirements, refreshes the preview unit, runs the root half (`huxa-activate`: nginx sites, reload, backend restart) through sudo, pushes main and checks `/health`. `fab deploy` on the Mac pushes and calls it; the phone workflow's "ship it" calls it directly.
+Runs on the server as `huxadev` from a clean `/opt/huxa` on main. Builds the web app with a cleared Metro cache, commits `08_app/dist` if it changed, installs backend requirements, refreshes the preview unit, runs the root half (`huxa-activate`: nginx sites, reload, backend restart) through sudo, pushes main and checks `/health`. `fab deploy` on the Mac pushes and calls it; the phone workflow's "ship it" calls it directly. `--pull` fast-forwards main from origin first, for a deploy of what was pushed from elsewhere. Claude sessions on the server run it without a prompt when a ship or deploy was asked for; auto mode decides, and it never runs from a worktree.
 
 ```bash
 cd /opt/huxa && 05_scripts/deploy.sh
+cd /opt/huxa && 05_scripts/deploy.sh --pull
 ```
 
 ### remote_control.sh

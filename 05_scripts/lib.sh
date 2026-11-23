@@ -19,6 +19,9 @@ die() { echo "$*" >&2; exit 1; }
 need_root() { [ "$(id -u)" -eq 0 ] || die "run as root"; }
 need_dev_user() { [ "$(id -un)" = "$DEV_USER" ] || die "run as $DEV_USER (you are $(id -un))"; }
 has_backend() { [ "$BACKEND" != none ]; }
+# FRONTEND=server: the backend renders every page (Next.js and the like), so
+# nothing is built into a www dir and nginx proxies all paths to the socket.
+server_rendered() { [ "$FRONTEND" = server ]; }
 preview_url() { echo "https://dev-$1.$DOMAIN"; }
 
 # The topic is the argument, or the first path element under WORKTREES when run

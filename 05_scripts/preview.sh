@@ -39,7 +39,9 @@ case "$cmd" in
         echo "building $url"
         rm -rf "${dir:?}/www"
         (cd "$wt" && build_frontend "$url" "$dir/www")
-        [ -e "$dir/www/index.html" ] || die "build left no index.html in $dir/www"
+        if ! server_rendered; then
+            [ -e "$dir/www/index.html" ] || die "build left no index.html in $dir/www"
+        fi
 
         if has_backend; then
             # Enabled as well as started, so the backend comes back after a reboot.
