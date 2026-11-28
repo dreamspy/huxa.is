@@ -2,6 +2,10 @@
 
 All notable changes to HuXa are documented here.
 
+## v0.5.21 — 2026-11-28
+
+- Dictation records from the moment the mic is live, so the first words are not lost. Audio from before the transcription connection opens is held and sent when it opens; stopping before then still transcribes it.
+
 ## v0.5.20 — 2026-11-23
 
 - Multiline text fields (compose, diary answers, Ask HuXa, feedback) grow with their text on the web, up to 240 px, then scroll.
